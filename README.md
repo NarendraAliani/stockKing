@@ -41,7 +41,7 @@ Then check `http://localhost:8080/api/status`. The initial baseline has no datab
 
 ## Source archive audit
 
-See [initial audit](docs/IMPORT_AUDIT.md) and [local run checklist](docs/LOCAL_RUN_CHECKLIST.md). The supplied archive also references a missing local SmartStream JAR and does not include the Gradle wrapper JAR. The new foundation avoids the proprietary/local JAR dependency while CI validates its declared Maven dependencies.
+See [initial audit](docs/IMPORT_AUDIT.md), [local run checklist](docs/LOCAL_RUN_CHECKLIST.md), and the [safe legacy import plan](docs/SAFE_IMPORT_PLAN.md). The import plan defines explicit safety gates for broker connections, destructive script refreshes, secrets, migrations, and paper-trading tests. The supplied archive also references a missing local SmartStream JAR and does not include the Gradle wrapper JAR. The new foundation avoids the proprietary/local JAR dependency while CI validates its declared Maven dependencies.
 
 ## Next development stages
 
