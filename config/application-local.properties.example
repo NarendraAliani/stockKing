@@ -1,0 +1,33 @@
+# Copy this file to src/main/resources/application-local.properties only after source import,
+# or copy the values into your IDE's local environment configuration.
+# Do not commit real credentials. This template intentionally has no secrets.
+
+spring.application.name=StockKing
+
+# Database: point only to a disposable local database until schema compatibility is approved.
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/stockking}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:stockking_app}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:}
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# Safety: never auto-alter an existing schema. Review Flyway migrations before enabling.
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.open-in-view=false
+spring.flyway.enabled=false
+
+# Broker integrations should not be required for application startup.
+dhan.client.id=${DHAN_CLIENT_ID:}
+dhan.access.token=${DHAN_ACCESS_TOKEN:}
+angel.api.key=${ANGEL_API_KEY:}
+angel.historical.api.key=${ANGEL_HISTORICAL_API_KEY:}
+angel.client.id=${ANGEL_CLIENT_ID:}
+angel.password=${ANGEL_PASSWORD:}
+angel.totp.secret=${ANGEL_TOTP_SECRET:}
+
+# Notification credentials remain empty unless explicitly configured.
+telegram.bot.token=${TELEGRAM_BOT_TOKEN:}
+telegram.chat.id=${TELEGRAM_CHAT_ID:}
+
+scanner.timezone=Asia/Kolkata
+spring.task.scheduling.time-zone=Asia/Kolkata
+logging.level.com.foscanner=INFO
