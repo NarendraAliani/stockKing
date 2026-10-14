@@ -1,53 +1,53 @@
 # StockKing
 
-StockKing is a local-first trading research and signal platform, intended to start with paper trading. It is being assembled from the supplied Spring Boot application in staged, testable increments.
+StockKing is a local-first trading research and signal platform. The initial foundation is paper-trading-first; broker execution is not implemented or enabled by this baseline.
 
-> **Safety default:** paper trading only. No live order placement is enabled by this repository baseline. Trading signals are research outputs, not guarantees of performance.
+> **Safety default:** paper trading only. Signals and backtests are research outputs, not guarantees of performance.
 
-## Planned technology baseline
+## Current foundation
 
-- Java 21
-- Spring Boot 3.3.5
+- Java 21 and Spring Boot 3.3.5
 - Gradle Kotlin DSL
-- Thymeleaf web UI
-- Spring Data JPA / MySQL
-- Supplied source contains Dhan and Angel One integration code, scanner services, and backtesting modules
+- Thymeleaf, Spring Web, and validation
+- `/api/status` endpoint
+- Immutable initial risk policy with tests
+- GitHub Actions CI for clean compile/test runs
+- Safe application defaults with no broker credentials and no database connection
 
-## Current repository status
+## Important status distinction
 
-This repository currently contains safety/onboarding files and an initial source-archive audit report. **The full Java application has not yet been imported into this repository, and this repository is not runnable as an application yet.**
+This repository now contains a **new StockKing foundation**, not the full inherited options/stocks scanner application. The supplied archive's 156 Java files have been reviewed but have **not yet been imported** into this repository. The old application's scanning, broker, persistence, and backtesting functionality is therefore not available in this baseline.
 
-The supplied ZIP does not contain the Gradle wrapper JAR or the local SmartStream JAR referenced by the original build. It also has no Java `*Test.java` test files. Build and test status is therefore not verified. See [`docs/IMPORT_AUDIT.md`](docs/IMPORT_AUDIT.md) for confirmed findings and safety gates.
+The initial CI workflow is being used to verify the new foundation. See [Actions](https://github.com/NarendraAliani/stockKing/actions) for the actual result; a committed workflow is not itself proof of a passing build.
 
-## Local setup guidance
+## Build and run locally
 
-1. Install a JDK 21 distribution.
-2. Restore a complete Gradle wrapper or install a compatible Gradle distribution.
-3. Create a dedicated disposable local MySQL database and restricted application user. Do not point a first run at a valuable existing database.
-4. Set credentials using environment variables or a local file that is ignored by Git.
-5. Review all database mutation and migration behavior before starting the server.
-6. Run tests before using any scanner, backtest, or notification feature.
+Requirements: JDK 21 and a Gradle 8.x installation.
 
-Do not commit real access tokens, API keys, passwords, Telegram tokens, exports, or database dumps.
+```bash
+gradle clean test
+gradle bootRun
+```
 
-## Configuration
+Then check `http://localhost:8080/api/status`. The initial baseline has no database configured and no broker connection configured, so it is intentionally not the inherited scanner app yet.
 
-The raw `application.properties` from the archive was not copied because it contains credential-looking fields and machine-specific database settings. A placeholder-based `application.properties` and `.env.example` should be used for local development once the application source is imported.
+## Safe configuration
 
-Common environment variables include `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `DHAN_ACCESS_TOKEN`, `DHAN_CLIENT_ID`, `ANGEL_API_KEY`, `ANGEL_CLIENT_ID`, `ANGEL_PASSWORD`, and `ANGEL_TOTP_SECRET`.
+- Do not commit credentials, tokens, passwords, webhook URLs, database dumps, or local settings.
+- The raw `application.properties` from the source archive was excluded because it contains credential-looking values and machine-specific settings.
+- The original archive also included a Dhan token and Angel One credential values. Rotate those credentials before reuse.
+- The inherited project uses Hibernate schema auto-update and includes a script refresh that truncates `nfo_scripts` and `equity_scripts`. Do not point it at your existing database before those paths are reviewed and made safe.
+- Do not use live order placement during development.
 
-## Development stages
+## Source archive audit
 
-1. Import the source with credentials removed and establish a reproducible build.
-2. Audit schema compatibility and preserve existing database contents.
-3. Review script refresh, scanner, and backtest correctness, including look-ahead bias, costs, and risk assumptions.
-4. Implement paper trading and risk controls before considering any live execution feature.
-5. Integrate notifications only after verifying actual delivery behavior and API support.
+See [initial audit](docs/IMPORT_AUDIT.md) and [local run checklist](docs/LOCAL_RUN_CHECKLIST.md). The supplied archive also references a missing local SmartStream JAR and does not include the Gradle wrapper JAR. The new foundation avoids the proprietary/local JAR dependency while CI validates its declared Maven dependencies.
 
-## Safety notes
+## Next development stages
 
-- Separate a generated signal, a simulated paper fill, and a broker-reported fill.
-- Never log access tokens or full authorization headers.
-- Do not enable Hibernate automatic schema updates against an existing database without explicit schema review.
-- The inherited script-master refresh has `TRUNCATE TABLE` operations; do not run it against valuable data before replacing or explicitly approving that behavior.
-- A backtest or signal is not evidence of future profits.
+1. Import sanitized source and reconcile duplicate packages/configuration.
+2. Restore or replace missing SmartStream dependency only after confirming licensing and required API usage.
+3. Establish a reproducible full-application build and automated tests.
+4. Review schema migrations, database writes, and script refresh behavior.
+5. Verify scanner/backtest timing, costs, stop/target rules, and risk sizing.
+6. Implement paper trade lifecycle, journal, and notification delivery.
