@@ -64,10 +64,10 @@ class PaperDashboardControllerTest {
                 new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
                         clock, ZoneId.of("Asia/Kolkata")));
 
-        assertEquals(1, controller.trades(PaperTradeLedger.Status.OPEN).size());
-        assertEquals("open-1", controller.trades(PaperTradeLedger.Status.OPEN).get(0).signalId());
-        assertEquals(1, controller.trades(PaperTradeLedger.Status.CLOSED).size());
-        assertEquals("closed-1", controller.trades(PaperTradeLedger.Status.CLOSED).get(0).signalId());
+        assertEquals(1, controller.trades(PaperTradeLedger.Status.OPEN, null, null).size());
+        assertEquals("open-1", controller.trades(PaperTradeLedger.Status.OPEN, null, null).get(0).signalId());
+        assertEquals(1, controller.trades(PaperTradeLedger.Status.CLOSED, null, null).size());
+        assertEquals("closed-1", controller.trades(PaperTradeLedger.Status.CLOSED, null, null).get(0).signalId());
         assertEquals(2, controller.trades(null, null, null).size());
         assertEquals(1, controller.trades(null, PaperTradeLedger.Side.BUY, null).size());
         assertEquals(1, controller.trades(null, PaperTradeLedger.Side.SELL, null).size());
