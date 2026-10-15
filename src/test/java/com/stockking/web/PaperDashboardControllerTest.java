@@ -44,9 +44,9 @@ class PaperDashboardControllerTest {
                 new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
                         clock, ZoneId.of("Asia/Kolkata")));
 
-        assertTrue(controller.trades(null).isEmpty());
-        assertTrue(controller.trades(PaperTradeLedger.Status.OPEN).isEmpty());
-        assertTrue(controller.trades(PaperTradeLedger.Status.CLOSED).isEmpty());
+        assertTrue(controller.trades(null, null, null).isEmpty());
+        assertTrue(controller.trades(PaperTradeLedger.Status.OPEN, null, null).isEmpty());
+        assertTrue(controller.trades(PaperTradeLedger.Status.CLOSED, null, null).isEmpty());
     }
 
     @Test
@@ -68,7 +68,13 @@ class PaperDashboardControllerTest {
         assertEquals("open-1", controller.trades(PaperTradeLedger.Status.OPEN).get(0).signalId());
         assertEquals(1, controller.trades(PaperTradeLedger.Status.CLOSED).size());
         assertEquals("closed-1", controller.trades(PaperTradeLedger.Status.CLOSED).get(0).signalId());
-        assertEquals(2, controller.trades(null).size());
+        assertEquals(2, controller.trades(null, null, null).size());
+        assertEquals(1, controller.trades(null, PaperTradeLedger.Side.BUY, null).size());
+        assertEquals(1, controller.trades(null, PaperTradeLedger.Side.SELL, null).size());
+        assertEquals(1, controller.trades(null, null, "test").size());
+        assertEquals(0, controller.trades(null, null, "OTHER").size());
+        assertEquals(1, controller.trades(PaperTradeLedger.Status.CLOSED,
+                PaperTradeLedger.Side.BUY, " TEST ").size());
     }
 
     @Test
