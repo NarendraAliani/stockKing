@@ -49,6 +49,7 @@ Useful local URLs:
 - Paper dashboard: `http://localhost:8080/paper`
 - Dashboard JSON: `http://localhost:8080/api/paper/dashboard`
 - Paper trades JSON: `http://localhost:8080/api/paper/trades`
+- One paper trade by signal ID: `http://localhost:8080/api/paper/trades/{signalId}` (returns 404 when no matching paper trade exists)
 - Open trades only: `http://localhost:8080/api/paper/trades?status=OPEN`
 - Closed trades only: `http://localhost:8080/api/paper/trades?status=CLOSED`
 - Buy trades only: `http://localhost:8080/api/paper/trades?side=BUY`
