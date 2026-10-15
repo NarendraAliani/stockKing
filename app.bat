@@ -83,6 +83,15 @@ call :check_gradle
 if errorlevel 1 goto fatal
 
 echo.
+echo Checking port %SERVER_PORT%...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$listeners = @(Get-NetTCPConnection -LocalPort %SERVER_PORT% -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique); foreach ($owner in $listeners) { $process = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $owner) -ErrorAction SilentlyContinue; if ($process -and $process.CommandLine -match 'com\.stockking\.StockKingApplication') { Write-Host ('Stopping existing StockKing process PID ' + $owner + ' to free port %SERVER_PORT%...'); Stop-Process -Id $owner -Force -ErrorAction Stop } else { Write-Host ('ERROR: Port %SERVER_PORT% is occupied by a process that does not look like StockKing (PID ' + $owner + ', ' + $process.Name + '). It will NOT be terminated automatically.'); exit 2 } }; Start-Sleep -Seconds 2; if (Get-NetTCPConnection -LocalPort %SERVER_PORT% -State Listen -ErrorAction SilentlyContinue) { Write-Host 'ERROR: Port %SERVER_PORT% is still occupied.'; exit 3 }; Write-Host 'Port %SERVER_PORT% is free.'"
+if errorlevel 1 (
+  echo ERROR: Could not safely free port %SERVER_PORT%.
+  echo Close the other application using this port, then run app.bat again.
+  goto fatal
+)
+
+echo.
 echo Running tests before starting StockKing...
 call "%SK_GRADLE%" --no-daemon clean test
 if errorlevel 1 (
