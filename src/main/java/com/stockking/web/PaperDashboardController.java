@@ -1,6 +1,7 @@
 package com.stockking.web;
 
 import com.stockking.paper.PaperTradeLedger;
+import com.stockking.paper.PaperPerformanceCalculator;
 import com.stockking.risk.PaperRiskGuard;
 import java.math.BigDecimal;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaperDashboardController {
     private final PaperTradeLedger ledger;
     private final PaperRiskGuard riskGuard;
+    private final PaperPerformanceCalculator performanceCalculator = new PaperPerformanceCalculator();
 
     public PaperDashboardController(PaperTradeLedger ledger, PaperRiskGuard riskGuard) {
         this.ledger = ledger;
@@ -29,6 +31,11 @@ public class PaperDashboardController {
         PaperRiskGuard.EntryDecision risk = riskGuard.snapshot();
         return new Dashboard("paper", false, trades.size(), openTrades, closedTrades,
                 risk.entriesUsed(), risk.dailyPnl(), risk.allowed(), risk.rejection().name());
+    }
+
+    @GetMapping("/performance")
+    public PaperPerformanceCalculator.Summary performance() {
+        return performanceCalculator.summarize(ledger.allTrades());
     }
 
     @GetMapping("/risk")
