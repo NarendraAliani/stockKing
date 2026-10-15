@@ -30,6 +30,13 @@ public class PaperDashboardController {
                 risk.entriesUsed(), risk.dailyPnl(), risk.allowed(), risk.rejection().name());
     }
 
+    @GetMapping("/risk")
+    public RiskSnapshot risk() {
+        PaperRiskGuard.EntryDecision risk = riskGuard.snapshot();
+        return new RiskSnapshot(risk.allowed(), risk.rejection().name(),
+                risk.entriesUsed(), risk.dailyPnl(), false);
+    }
+
     @GetMapping("/trades")
     public List<PaperTradeLedger.Trade> trades() {
         return ledger.allTrades();
@@ -45,4 +52,12 @@ public class PaperDashboardController {
             BigDecimal dailyRealizedGrossPnl,
             boolean entriesAllowed,
             String riskStatus) {}
+
+    /** Read-only risk state; live trading is always reported as disabled. */
+    public record RiskSnapshot(
+            boolean entriesAllowed,
+            String riskStatus,
+            int entriesUsedToday,
+            BigDecimal dailyRealizedGrossPnl,
+            boolean liveTradingEnabled) {}
 }
