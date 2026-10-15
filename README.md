@@ -39,6 +39,10 @@ Then check `http://localhost:8080/api/status`. The initial baseline has no datab
 - The inherited project uses Hibernate schema auto-update and includes a script refresh that truncates `nfo_scripts` and `equity_scripts`. Do not point it at your existing database before those paths are reviewed and made safe.
 - Do not use live order placement during development.
 
+## Safe import tracking
+
+See [import readiness checklist](docs/IMPORT_READINESS_CHECKLIST.md), [safe import plan](docs/SAFE_IMPORT_PLAN.md), and [database dump safety assessment](docs/DATABASE_DUMP_SAFETY.md). These are gates, not a claim that the legacy application has been imported or that the database is ready to migrate.
+
 ## Source archive audit
 
 See [initial audit](docs/IMPORT_AUDIT.md) and [local run checklist](docs/LOCAL_RUN_CHECKLIST.md). The supplied archive also references a missing local SmartStream JAR and does not include the Gradle wrapper JAR. The new foundation avoids the proprietary/local JAR dependency while CI validates its declared Maven dependencies.
