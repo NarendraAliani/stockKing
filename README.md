@@ -39,6 +39,10 @@ Then check `http://localhost:8080/api/status`. The initial baseline has no datab
 - The inherited project uses Hibernate schema auto-update and includes a script refresh that truncates `nfo_scripts` and `equity_scripts`. Do not point it at your existing database before those paths are reviewed and made safe.
 - Do not use live order placement during development.
 
+## Legacy runtime hazard register
+
+See [legacy runtime hazards](docs/LEGACY_RUNTIME_HAZARDS.md) for concrete findings on destructive script refresh, broker auto-connect paths, Telegram delivery reporting, browser token exposure, and missing stream dependencies. These paths remain blocked from import until they are corrected and tested.
+
 ## Source archive audit
 
 See [initial audit](docs/IMPORT_AUDIT.md) and [local run checklist](docs/LOCAL_RUN_CHECKLIST.md). The supplied archive also references a missing local SmartStream JAR and does not include the Gradle wrapper JAR. The new foundation avoids the proprietary/local JAR dependency while CI validates its declared Maven dependencies.
