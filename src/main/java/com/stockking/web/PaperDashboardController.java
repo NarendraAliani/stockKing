@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Read-only paper-trading dashboard API. No endpoints here can open or close trades. */
@@ -38,8 +39,11 @@ public class PaperDashboardController {
     }
 
     @GetMapping("/trades")
-    public List<PaperTradeLedger.Trade> trades() {
-        return ledger.allTrades();
+    public List<PaperTradeLedger.Trade> trades(
+            @RequestParam(name = "status", required = false) PaperTradeLedger.Status status) {
+        List<PaperTradeLedger.Trade> trades = ledger.allTrades();
+        if (status == null) return trades;
+        return trades.stream().filter(trade -> trade.status() == status).toList();
     }
 
     public record Dashboard(
