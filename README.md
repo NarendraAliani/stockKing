@@ -39,15 +39,26 @@ Then check `http://localhost:8080/api/status`. The initial baseline has no datab
 - The inherited project uses Hibernate schema auto-update and includes a script refresh that truncates `nfo_scripts` and `equity_scripts`. Do not point it at your existing database before those paths are reviewed and made safe.
 - Do not use live order placement during development.
 
+## Safe import and implementation tracking
+
+- [Safe import plan](docs/SAFE_IMPORT_PLAN.md)
+- [Database dump safety assessment](docs/DATABASE_DUMP_SAFETY.md)
+- [Import readiness checklist](docs/IMPORT_READINESS_CHECKLIST.md)
+- [Legacy runtime hazard register](docs/LEGACY_RUNTIME_HAZARDS.md)
+- [Paper-trading execution boundary](docs/PAPER_TRADING_BOUNDARY.md)
+
+These are safety gates and implementation contracts, not claims that the legacy scanner, database, broker integration, or paper trade lifecycle has been implemented.
+
 ## Source archive audit
 
 See [initial audit](docs/IMPORT_AUDIT.md) and [local run checklist](docs/LOCAL_RUN_CHECKLIST.md). The supplied archive also references a missing local SmartStream JAR and does not include the Gradle wrapper JAR. The new foundation avoids the proprietary/local JAR dependency while CI validates its declared Maven dependencies.
 
 ## Next development stages
 
-1. Import sanitized source and reconcile duplicate packages/configuration.
-2. Restore or replace missing SmartStream dependency only after confirming licensing and required API usage.
-3. Establish a reproducible full-application build and automated tests.
-4. Review schema migrations, database writes, and script refresh behavior.
-5. Verify scanner/backtest timing, costs, stop/target rules, and risk sizing.
-6. Implement paper trade lifecycle, journal, and notification delivery.
+1. Implement the paper-trading domain and pure risk calculation with automated tests.
+2. Implement deterministic in-memory paper execution and lifecycle transitions.
+3. Add API/UI views only after the safety invariants pass.
+4. Establish a reproducible full-application build and automated tests before importing legacy modules.
+5. Review schema migrations, database writes, and script refresh behavior against a disposable database.
+6. Verify scanner/backtest timing, costs, stop/target rules, and risk sizing.
+7. Add notification delivery only after provider-response and secret-redaction tests pass.
