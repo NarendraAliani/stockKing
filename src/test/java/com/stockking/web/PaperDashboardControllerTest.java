@@ -57,9 +57,9 @@ class PaperDashboardControllerTest {
                 PaperTradeLedger.Side.BUY, clock.instant(), new BigDecimal("100"),
                 new BigDecimal("95"), new BigDecimal("110"), 1));
         ledger.open(new PaperTradeLedger.Signal("closed-1", "strategy-a", "TEST",
-                PaperTradeLedger.Side.BUY, clock.instant(), new BigDecimal("100"),
-                new BigDecimal("95"), new BigDecimal("110"), 1));
-        ledger.close("closed-1", new BigDecimal("105"), "TEST_EXIT");
+                PaperTradeLedger.Side.SELL, clock.instant(), new BigDecimal("100"),
+                new BigDecimal("105"), new BigDecimal("90"), 1));
+        ledger.close("closed-1", new BigDecimal("95"), "TEST_EXIT");
         PaperDashboardController controller = new PaperDashboardController(ledger,
                 new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
                         clock, ZoneId.of("Asia/Kolkata")));
@@ -74,7 +74,7 @@ class PaperDashboardControllerTest {
         assertEquals(1, controller.trades(null, null, "test").size());
         assertEquals(0, controller.trades(null, null, "OTHER").size());
         assertEquals(1, controller.trades(PaperTradeLedger.Status.CLOSED,
-                PaperTradeLedger.Side.BUY, " TEST ").size());
+                PaperTradeLedger.Side.SELL, " TEST ").size());
     }
 
     @Test
