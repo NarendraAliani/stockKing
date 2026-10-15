@@ -4,10 +4,7 @@ import com.stockking.risk.PaperRiskGuard;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-/**
- * Coordinates paper-only trade lifecycle and risk checks.
- * No broker, database, scheduler, or network calls are made.
- */
+/** Coordinates paper-only trade lifecycle and risk checks without external I/O. */
 public final class PaperTradingService {
     private final PaperTradeLedger ledger;
     private final PaperRiskGuard riskGuard;
@@ -18,22 +15,13 @@ public final class PaperTradingService {
     }
 
     public synchronized PaperTradeLedger.Trade open(PaperTradeLedger.Signal signal) {
-        Objects.requireNonNull(signal, "signal");
+        PaperTradeLedger.validateSignal(signal);
         var existing = ledger.findBySignalId(signal.signalId());
         if (existing.isPresent()) return existing.get();
 
         var decision = riskGuard.authorizeEntry();
-        if (!decision.allowed()) {
-            throw new RiskRejectedException(decision.rejection().name());
-        }
-        try {
-            return ledger.open(signal);
-        } catch (RuntimeException ex) {
-            // Avoid consuming an entry when ledger validation rejects the signal.
-            // The guard has no rollback API, so this is deliberately surfaced as
-            // a known limitation instead of pretending the counter was restored.
-            throw ex;
-        }
+        if (!decision.allowed()) throw new RiskRejectedException(decision.rejection().name());
+        return ledger.open(signal);
     }
 
     public synchronized PaperTradeLedger.Trade close(String signalId, BigDecimal exitPrice, String reason) {
