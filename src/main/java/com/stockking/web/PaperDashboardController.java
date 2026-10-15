@@ -40,10 +40,18 @@ public class PaperDashboardController {
 
     @GetMapping("/trades")
     public List<PaperTradeLedger.Trade> trades(
-            @RequestParam(name = "status", required = false) PaperTradeLedger.Status status) {
-        List<PaperTradeLedger.Trade> trades = ledger.allTrades();
-        if (status == null) return trades;
-        return trades.stream().filter(trade -> trade.status() == status).toList();
+            @RequestParam(name = "status", required = false) PaperTradeLedger.Status status,
+            @RequestParam(name = "side", required = false) PaperTradeLedger.Side side,
+            @RequestParam(name = "instrument", required = false) String instrument) {
+        String instrumentFilter = instrument == null ? null : instrument.trim();
+        if (instrumentFilter != null && instrumentFilter.isEmpty()) instrumentFilter = null;
+        final String requestedInstrument = instrumentFilter;
+        return ledger.allTrades().stream()
+                .filter(trade -> status == null || trade.status() == status)
+                .filter(trade -> side == null || trade.side() == side)
+                .filter(trade -> requestedInstrument == null
+                        || trade.instrumentId().equalsIgnoreCase(requestedInstrument))
+                .toList();
     }
 
     public record Dashboard(
