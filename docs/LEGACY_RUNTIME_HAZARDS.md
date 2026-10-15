@@ -14,7 +14,7 @@ This register captures concrete hazards found during static review of the inheri
 | Browser secret exposure | Settings mapping can include the Telegram bot token in a settings DTO returned to the browser. | Never serialize tokens to the UI. Use write-only secret inputs and masked configured/not-configured status. Redact secrets from logs and exceptions. |
 | Third-party stream adapter | SmartStream dependency is missing from the archive and referenced classes are stubs. | Do not invent a replacement API or bundle an unlicensed JAR. Define an adapter interface and either obtain an approved dependency or disable that integration. |
 | Scheduled jobs | Script sync and daily report scheduling are enabled in the legacy application; reports may send Telegram messages. | Make scheduling disabled by default and individually opt-in. Test with a fixed clock and fake notification provider. |
-| Order placement | The static review summarized so far has not established the full order-placement call graph. | Do not import or enable any order-routing path until all broker order calls, retries, cancel/modify operations, and config gates are located and reviewed. |
+| Order placement | A follow-up text search across the 156 Java source files for common broker order APIs and place/submit/modify/cancel order signatures did not locate an obvious broker order-placement call. This is not proof that order execution is absent; indirect SDK calls, reflection, or external integrations may not match these terms. | Before import, inspect all broker SDK usage and endpoint/service call graphs, then document whether order entry is present. Do not enable any order-routing path until all order, retry, cancel/modify, and configuration gates are reviewed. |
 
 ## Required review before integrating any legacy runtime code
 
@@ -29,4 +29,4 @@ This register captures concrete hazards found during static review of the inheri
 
 ## Verification boundary
 
-These are static source-review findings. No broker was contacted, no notification was sent, no SQL was executed, and no existing database was opened or changed during this review. Runtime behavior remains unverified.
+The source was inspected statically; this is not a runtime test. No broker was contacted, no notification was sent, no SQL was executed, and no existing database was opened or changed during this review. Runtime behavior remains unverified.
