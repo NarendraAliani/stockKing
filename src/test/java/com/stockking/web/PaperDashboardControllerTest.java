@@ -3,6 +3,7 @@ package com.stockking.web;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.stockking.paper.PaperTradeLedger;
 import com.stockking.risk.PaperRiskGuard;
@@ -75,6 +76,25 @@ class PaperDashboardControllerTest {
         assertEquals(0, controller.trades(null, null, "OTHER").size());
         assertEquals(1, controller.trades(PaperTradeLedger.Status.CLOSED,
                 PaperTradeLedger.Side.SELL, " TEST ").size());
+    }
+
+    @Test
+    void tradeDetailEndpointReturnsKnownTradeAndNotFoundForUnknownSignal() {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-15T07:00:00Z"), ZoneOffset.UTC);
+        PaperTradeLedger ledger = new PaperTradeLedger(clock);
+        ledger.open(new PaperTradeLedger.Signal("detail-1", "strategy-a", "TEST",
+                PaperTradeLedger.Side.BUY, clock.instant(), new BigDecimal("100"),
+                new BigDecimal("95"), new BigDecimal("110"), 1));
+        PaperDashboardController controller = new PaperDashboardController(ledger,
+                new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
+                        clock, ZoneId.of("Asia/Kolkata")));
+
+        var found = controller.tradeBySignalId("detail-1");
+        var missing = controller.tradeBySignalId("missing");
+
+        assertEquals(200, found.getStatusCode().value());
+        assertEquals("detail-1", found.getBody().signalId());
+        assertEquals(404, missing.getStatusCode().value());
     }
 
     @Test
