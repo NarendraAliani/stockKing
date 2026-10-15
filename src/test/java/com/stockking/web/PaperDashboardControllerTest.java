@@ -46,4 +46,21 @@ class PaperDashboardControllerTest {
 
         assertTrue(controller.trades().isEmpty());
     }
+
+    @Test
+    void riskEndpointIsReadOnlyAndReportsLiveTradingDisabled() {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-15T07:00:00Z"), ZoneOffset.UTC);
+        PaperDashboardController controller = new PaperDashboardController(
+                new PaperTradeLedger(clock),
+                new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
+                        clock, ZoneId.of("Asia/Kolkata")));
+
+        var risk = controller.risk();
+
+        assertTrue(risk.entriesAllowed());
+        assertEquals("NONE", risk.riskStatus());
+        assertEquals(0, risk.entriesUsedToday());
+        assertEquals(BigDecimal.ZERO, risk.dailyRealizedGrossPnl());
+        assertFalse(risk.liveTradingEnabled());
+    }
 }
