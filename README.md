@@ -49,9 +49,11 @@ Useful local URLs:
 - Paper trades JSON: `http://localhost:8080/api/paper/trades`
 - Open trades only: `http://localhost:8080/api/paper/trades?status=OPEN`
 - Closed trades only: `http://localhost:8080/api/paper/trades?status=CLOSED`
+- Buy trades only: `http://localhost:8080/api/paper/trades?side=BUY`
+- One instrument only: `http://localhost:8080/api/paper/trades?instrument=RELIANCE`
 - Paper risk snapshot: `http://localhost:8080/api/paper/risk`
 
-The trades API is read-only and accepts an optional `status` filter (`OPEN` or `CLOSED`); omitting it returns all trades. The paper ledger and risk counters are in-memory and reset on restart. The dashboard is read-only; this foundation does not send broker orders. The baseline has no database or broker connection configured and is intentionally not the inherited scanner app yet.
+The trades API is read-only and supports optional combined filters: `status` (`OPEN` or `CLOSED`), `side` (`BUY` or `SELL`), and `instrument` (case-insensitive exact instrument ID match; surrounding whitespace is ignored). Filters can be combined, for example `/api/paper/trades?status=OPEN&side=BUY&instrument=RELIANCE`. Omitting all filters returns all trades. The paper ledger and risk counters are in-memory and reset on restart. The dashboard is read-only; this foundation does not send broker orders. The baseline has no database or broker connection configured and is intentionally not the inherited scanner app yet.
 
 ## Safe configuration
 
