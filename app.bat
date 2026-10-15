@@ -29,15 +29,17 @@ echo.
 echo   1. Start StockKing
 echo   2. Run tests
 echo   3. Open local status endpoint
-echo   4. Exit
+echo   4. Open paper dashboard
+echo   5. Exit
 echo.
 set "SK_CHOICE="
-set /p "SK_CHOICE=Choose an option [1-4]: "
+set /p "SK_CHOICE=Choose an option [1-5]: "
 
 if "%SK_CHOICE%"=="1" goto start
 if "%SK_CHOICE%"=="2" goto test
 if "%SK_CHOICE%"=="3" goto status
-if "%SK_CHOICE%"=="4" goto end
+if "%SK_CHOICE%"=="4" goto dashboard
+if "%SK_CHOICE%"=="5" goto end
 echo Invalid option.
 timeout /t 2 >nul
 goto menu
@@ -94,6 +96,11 @@ goto pause_menu
 :status
 echo Opening http://localhost:%SERVER_PORT%/api/status
 start "" "http://localhost:%SERVER_PORT%/api/status"
+goto menu
+
+:dashboard
+echo Opening http://localhost:%SERVER_PORT%/paper
+start "" "http://localhost:%SERVER_PORT%/paper"
 goto menu
 
 :pause_menu
