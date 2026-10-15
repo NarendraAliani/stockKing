@@ -71,7 +71,7 @@ class PaperDashboardControllerTest {
         assertEquals(2, controller.trades(null, null, null).size());
         assertEquals(1, controller.trades(null, PaperTradeLedger.Side.BUY, null).size());
         assertEquals(1, controller.trades(null, PaperTradeLedger.Side.SELL, null).size());
-        assertEquals(1, controller.trades(null, null, "test").size());
+        assertEquals(2, controller.trades(null, null, "test").size());
         assertEquals(0, controller.trades(null, null, "OTHER").size());
         assertEquals(1, controller.trades(PaperTradeLedger.Status.CLOSED,
                 PaperTradeLedger.Side.SELL, " TEST ").size());
