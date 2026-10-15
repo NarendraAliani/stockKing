@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StockKing · Paper Trading</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1020; --panel:#141c30; --line:#293650; --muted:#9eacc5; --text:#eef3ff; --accent:#79d7b0; --danger:#ff9e9e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif; background:var(--bg); color:var(--text); }
+    main { max-width:1120px; margin:0 auto; padding:32px 20px 56px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+    h1 { margin:0; font-size:clamp(1.7rem,4vw,2.5rem); letter-spacing:-.04em; }
+    h2 { margin:0 0 14px; font-size:1.1rem; }
+    .sub,.muted { color:var(--muted); }
+    .pill { display:inline-block; border:1px solid #367b66; color:var(--accent); border-radius:999px; padding:5px 12px; font-weight:700; font-size:.8rem; letter-spacing:.06em; }
+    .notice { padding:14px 16px; border:1px solid var(--line); background:#11192b; border-radius:14px; margin-bottom:20px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:14px; margin:20px 0; }
+    .card,section { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; }
+    .metric { font-size:1.75rem; font-weight:750; margin-top:8px; letter-spacing:-.03em; overflow-wrap:anywhere; }
+    .good { color:var(--accent); } .bad { color:var(--danger); }
+    .table-wrap { overflow-x:auto; }
+    table { border-collapse:collapse; width:100%; min-width:780px; font-size:.92rem; }
+    th,td { padding:12px 10px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap; }
+    th { color:var(--muted); font-weight:600; }
+    .empty { text-align:center; padding:28px 12px; color:var(--muted); }
+    footer { margin-top:18px; color:var(--muted); font-size:.85rem; }
+    a { color:var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>StockKing <span class="sub">/ Paper Trading</span></h1>
+      <div class="sub">A read-only view of the current in-memory paper session.</div>
+    </div>
+    <span class="pill">PAPER MODE · LIVE OFF</span>
+  </header>
+
+  <div class="notice">
+    <strong>Simulation only.</strong> No broker orders are sent from this dashboard.
+    Current trades and risk counters are held in memory and reset when the application restarts.
+  </div>
+
+  <div class="grid" aria-label="Paper trading summary">
+    <article class="card"><div class="muted">Total trades</div><div class="metric" th:text="${totalTrades}">0</div></article>
+    <article class="card"><div class="muted">Open trades</div><div class="metric" th:text="${openTrades}">0</div></article>
+    <article class="card"><div class="muted">Closed trades</div><div class="metric" th:text="${closedTrades}">0</div></article>
+    <article class="card"><div class="muted">Entries used today</div><div class="metric" th:text="${entriesUsedToday}">0</div></article>
+    <article class="card"><div class="muted">Realized gross P&amp;L</div><div class="metric" th:classappend="${dailyPnl.signum() < 0 ? ' bad' : ' good'}" th:text="${dailyPnl}">0</div></article>
+    <article class="card"><div class="muted">Entry risk gate</div><div class="metric" th:classappend="${entriesAllowed ? ' good' : ' bad'}" th:text="${entriesAllowed ? 'ALLOWED' : riskStatus}">ALLOWED</div></article>
+  </div>
+
+  <section>
+    <h2>Paper trade history</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Trade</th><th>Strategy</th><th>Instrument</th><th>Side</th><th>Qty</th><th>Entry</th><th>Stop</th><th>Target</th><th>Status</th><th>Exit</th><th>Gross P&amp;L</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr th:if="${#lists.isEmpty(trades)}"><td class="empty" colspan="12">No paper trades yet. This view is intentionally read-only.</td></tr>
+          <tr th:each="trade : ${trades}">
+            <td th:text="${trade.tradeId()}">PAPER-example</td>
+            <td th:text="${trade.strategyId()}">strategy</td>
+            <td th:text="${trade.instrumentId()}">instrument</td>
+            <td th:text="${trade.side()}">BUY</td>
+            <td th:text="${trade.quantity()}">1</td>
+            <td th:text="${trade.entryPrice()}">0</td>
+            <td th:text="${trade.stopPrice()}">0</td>
+            <td th:text="${trade.targetPrice()}">0</td>
+            <td th:text="${trade.status()}">OPEN</td>
+            <td th:text="${trade.exitPrice() == null ? '—' : trade.exitPrice()}">—</td>
+            <td th:text="${trade.realizedGrossPnl()}">0</td>
+            <td th:text="${trade.lastReason()}">PAPER_OPEN</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Risk status: <strong th:text="${riskStatus}">NONE</strong>.
+    P&amp;L is gross only; fees, taxes, slippage, and realistic fill simulation are not included.
+    <span> API: <a href="/api/paper/dashboard">dashboard JSON</a> · <a href="/api/paper/trades">trades JSON</a></span>
+  </footer>
+</main>
+</body>
+</html>
