@@ -9,7 +9,8 @@ StockKing is a local-first trading research and signal platform. The initial fou
 - Java 21 and Spring Boot 3.3.5
 - Gradle Kotlin DSL
 - Thymeleaf, Spring Web, and validation
-- `/api/status` endpoint and a read-only paper-trading dashboard at `/paper`
+- `/` redirects to the read-only paper-trading dashboard at `/paper`
+- `/api/status` endpoint and a read-only paper-trading dashboard
 - Read-only paper APIs: `/api/paper/dashboard`, `/api/paper/trades`, `/api/paper/risk`, and `/api/paper/performance`
 - In-memory paper-trade lifecycle and risk guard with automated tests
 - GitHub Actions CI for clean compile/test runs
@@ -43,6 +44,7 @@ gradle bootRun
 
 Useful local URLs:
 
+- Home: `http://localhost:8080/` (redirects to the paper dashboard)
 - Status: `http://localhost:8080/api/status`
 - Paper dashboard: `http://localhost:8080/paper`
 - Dashboard JSON: `http://localhost:8080/api/paper/dashboard`
