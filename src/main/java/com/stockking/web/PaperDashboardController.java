@@ -5,6 +5,7 @@ import com.stockking.paper.PaperPerformanceCalculator;
 import com.stockking.risk.PaperRiskGuard;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,6 +37,14 @@ public class PaperDashboardController {
     @GetMapping("/performance")
     public PaperPerformanceCalculator.Summary performance() {
         return performanceCalculator.summarize(ledger.allTrades());
+    }
+
+    @GetMapping("/trades/{signalId}")
+    public ResponseEntity<PaperTradeLedger.Trade> tradeBySignalId(
+            @org.springframework.web.bind.annotation.PathVariable String signalId) {
+        return ledger.findBySignalId(signalId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/risk")
