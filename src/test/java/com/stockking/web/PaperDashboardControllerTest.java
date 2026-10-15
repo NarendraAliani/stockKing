@@ -44,7 +44,7 @@ class PaperDashboardControllerTest {
                 new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
                         clock, ZoneId.of("Asia/Kolkata")));
 
-        assertTrue(controller.trades().isEmpty());
+        assertTrue(controller.trades(null).isEmpty());
         assertTrue(controller.trades(PaperTradeLedger.Status.OPEN).isEmpty());
         assertTrue(controller.trades(PaperTradeLedger.Status.CLOSED).isEmpty());
     }
