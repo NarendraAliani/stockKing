@@ -47,9 +47,11 @@ Useful local URLs:
 - Paper dashboard: `http://localhost:8080/paper`
 - Dashboard JSON: `http://localhost:8080/api/paper/dashboard`
 - Paper trades JSON: `http://localhost:8080/api/paper/trades`
+- Open trades only: `http://localhost:8080/api/paper/trades?status=OPEN`
+- Closed trades only: `http://localhost:8080/api/paper/trades?status=CLOSED`
 - Paper risk snapshot: `http://localhost:8080/api/paper/risk`
 
-The paper ledger and risk counters are in-memory and reset on restart. The dashboard is read-only; this foundation does not send broker orders. The baseline has no database or broker connection configured and is intentionally not the inherited scanner app yet.
+The trades API is read-only and accepts an optional `status` filter (`OPEN` or `CLOSED`); omitting it returns all trades. The paper ledger and risk counters are in-memory and reset on restart. The dashboard is read-only; this foundation does not send broker orders. The baseline has no database or broker connection configured and is intentionally not the inherited scanner app yet.
 
 ## Safe configuration
 
