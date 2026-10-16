@@ -114,7 +114,7 @@ public final class PaperTradeJournalStore {
                         || trade.lastReason().isBlank()) {
                     throw new IOException("Closed paper trade is missing close details");
                 }
-                if (!trade.closedAt().isAfter(trade.openedAt()) || trade.exitPrice().signum() <= 0) {
+                if (trade.closedAt().isBefore(trade.openedAt()) || trade.exitPrice().signum() <= 0) {
                     throw new IOException("Closed paper trade has invalid close time or exit price");
                 }
             } else {
