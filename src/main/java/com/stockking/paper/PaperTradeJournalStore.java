@@ -14,8 +14,8 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Local, versioned paper-trade journal storage. This store is deliberately not wired into
- * application startup or the ledger until persistence is explicitly enabled and integration-tested.
+ * Local, versioned paper-trade journal storage for the optional paper ledger persistence feature.
+ * Application configuration only constructs this store when persistence is explicitly enabled.
  */
 public final class PaperTradeJournalStore {
     public static final int CURRENT_SCHEMA_VERSION = 1;
@@ -84,6 +84,7 @@ public final class PaperTradeJournalStore {
     private static void validateTrades(List<PaperTradeLedger.Trade> trades) throws IOException {
         if (trades == null) throw new IOException("Paper journal trades list is missing");
         Set<String> signalIds = new HashSet<>();
+        Set<String> tradeIds = new HashSet<>();
         for (PaperTradeLedger.Trade trade : trades) {
             if (trade == null || trade.signalId() == null || trade.signalId().isBlank()
                     || trade.tradeId() == null || trade.tradeId().isBlank()
@@ -97,6 +98,9 @@ public final class PaperTradeJournalStore {
             }
             if (!signalIds.add(trade.signalId())) {
                 throw new IOException("Paper journal contains duplicate signal IDs");
+            }
+            if (!tradeIds.add(trade.tradeId())) {
+                throw new IOException("Paper journal contains duplicate trade IDs");
             }
             if (trade.entryPrice().signum() <= 0 || trade.stopPrice().signum() <= 0
                     || trade.targetPrice().signum() <= 0) {
