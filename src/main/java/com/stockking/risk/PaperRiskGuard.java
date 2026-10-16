@@ -42,11 +42,10 @@ public final class PaperRiskGuard {
         consecutiveLosses = 0;
         dailyRealizedPnl = BigDecimal.ZERO;
         LocalDate today = LocalDate.now(clock.withZone(tradingZone));
-        List<com.stockking.paper.PaperTradeLedger.Trade> todaysTrades = trades.stream()
+        entries = (int) trades.stream()
                 .filter(trade -> LocalDate.ofInstant(trade.openedAt(), tradingZone).equals(today))
-                .toList();
-        entries = todaysTrades.size();
-        todaysTrades.stream()
+                .count();
+        trades.stream()
                 .filter(trade -> trade.status() == com.stockking.paper.PaperTradeLedger.Status.CLOSED
                         && trade.closedAt() != null
                         && LocalDate.ofInstant(trade.closedAt(), tradingZone).equals(today))
