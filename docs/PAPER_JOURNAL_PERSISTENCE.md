@@ -29,7 +29,7 @@ On startup, load and validate the version before making the ledger available. Mi
 ## Rollout stages
 
 1. Implement the standalone store with schema/version validation and atomic replacement.
-2. Add tests for missing file, round-trip of open and closed trades, malformed JSON, unsupported schema, duplicate IDs, and write failure.
+2. Add tests for missing file, round-trip of open and closed trades, malformed JSON, unsupported schema, duplicate IDs, failed open writes, and failed close writes that must leave the trade and risk state unchanged.
 3. Add explicit opt-in configuration, defaulting off.
 4. Integrate ledger snapshots and startup restore behind the opt-in configuration. (Implemented.)
 5. Add configuration-level tests proving disabled mode leaves an existing journal untouched, enabled mode restores through application configuration, risk counters recover from closed losses, and invalid journals fail closed. (Covered by PaperTradingConfigurationTest; full Spring-context startup coverage remains a follow-up.)
