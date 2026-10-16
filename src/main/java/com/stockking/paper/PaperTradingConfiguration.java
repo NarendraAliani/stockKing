@@ -5,6 +5,9 @@ import com.stockking.risk.RiskPolicy;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZoneId;
+import java.io.IOException;
+import java.nio.file.Path;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,8 +20,14 @@ public class PaperTradingConfiguration {
     }
 
     @Bean
-    PaperTradeLedger paperTradeLedger(Clock stockKingClock) {
-        return new PaperTradeLedger(stockKingClock);
+    PaperTradeLedger paperTradeLedger(
+            Clock stockKingClock,
+            ObjectMapper objectMapper,
+            @Value("${stockking.paper.persistence.enabled:false}") boolean persistenceEnabled,
+            @Value("${stockking.paper.persistence.path:./data/paper-journal.json}") String journalPath) throws IOException {
+        if (!persistenceEnabled) return new PaperTradeLedger(stockKingClock);
+        return new PaperTradeLedger(stockKingClock,
+                new PaperTradeJournalStore(Path.of(journalPath), objectMapper));
     }
 
     @Bean
@@ -32,6 +41,7 @@ public class PaperTradingConfiguration {
 
     @Bean
     PaperTradingService paperTradingService(PaperTradeLedger ledger, PaperRiskGuard riskGuard) {
+        riskGuard.restoreFromTrades(ledger.allTrades());
         return new PaperTradingService(ledger, riskGuard);
     }
 }
