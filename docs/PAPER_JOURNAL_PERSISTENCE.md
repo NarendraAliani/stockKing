@@ -44,5 +44,5 @@ No broker integration, live orders, database connectivity, cloud sync, automatic
 - Configuration keys: `stockking.paper.persistence.enabled` (default `false`) and `stockking.paper.persistence.path` (default `./data/paper-journal.json`). Environment overrides are `STOCKKING_PAPER_PERSISTENCE_ENABLED` and `STOCKKING_PAPER_JOURNAL_PATH`.
 - The journal is limited to 10 MiB on both load and save. Saved snapshots are written to a sibling temporary file, flushed, and moved into place; atomic replacement is used when supported.
 - Trade records are validated for unique signal and trade IDs, positive prices and quantities, stop/target direction, and consistent open/closed fields. Unsupported schemas and malformed data fail closed.
-- Risk restoration counts entries opened on the current trading date and realized P&L for trades closed on that date. P&L is gross and does not include fees, taxes, or slippage.
+- Risk restoration counts entries opened on the current trading date and realized P&L for trades closed on that date. Historical trades remain in the journal across trading-day rollover while daily risk counters reset for the new date. P&L is gross and does not include fees, taxes, or slippage.
 - A local journal is not encrypted and is not a database or backup system. Keep it in a private, access-controlled directory and back it up separately if required.
