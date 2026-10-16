@@ -160,6 +160,26 @@ class PaperTradeJournalStoreTest {
     }
 
     @Test
+    void invalidPersistedTradePriceFailsClosedWithoutChangingJournal() throws Exception {
+        PaperTradeLedger.Trade valid = openTrade("persisted-invalid-price");
+        PaperTradeLedger.Trade invalidPrice = new PaperTradeLedger.Trade(
+                valid.tradeId(), valid.signalId(), valid.strategyId(), valid.instrumentId(), valid.side(),
+                valid.quantity(), BigDecimal.ZERO, valid.stopPrice(), valid.targetPrice(), valid.status(),
+                valid.openedAt(), valid.closedAt(), valid.exitPrice(), valid.realizedGrossPnl(), valid.lastReason());
+        Path path = tempDir.resolve("journal.json");
+        mapper().writeValue(path.toFile(),
+                new PaperTradeJournalStore.JournalDocument(PaperTradeJournalStore.CURRENT_SCHEMA_VERSION,
+                        List.of(invalidPrice)));
+        String original = Files.readString(path);
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
+
+        IOException error = assertThrows(IOException.class, store::load);
+
+        assertEquals("Paper journal contains a non-positive trade price", error.getMessage());
+        assertEquals(original, Files.readString(path));
+    }
+
+    @Test
     void duplicateSignalIdsAreRejectedBeforeWriting() {
         PaperTradeJournalStore store = new PaperTradeJournalStore(tempDir.resolve("journal.json"), mapper());
 
