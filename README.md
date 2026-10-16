@@ -13,6 +13,7 @@ StockKing is a local-first trading research and signal platform. The initial fou
 - `/api/status` reports `status: ok`, paper mode, and live trading disabled when the status endpoint responds
 - Read-only paper APIs: `/api/paper/dashboard`, `/api/paper/trades`, `/api/paper/risk`, and `/api/paper/performance`
 - In-memory paper-trade lifecycle and risk guard with automated tests
+- MockMvc integration tests exercise paper-trade list/detail HTTP behavior and the safe status response
 - GitHub Actions CI for clean compile/test runs
 - Windows `app.bat` launcher that updates its branch, checks prerequisites, safely handles an occupied app port, runs tests, and starts in paper mode
 - Safe application defaults with no broker credentials and no database connection
@@ -79,5 +80,5 @@ See [initial audit](docs/IMPORT_AUDIT.md) and [local run checklist](docs/LOCAL_R
 4. Review schema migrations, database writes, and script refresh behavior.
 5. Verify scanner/backtest timing, costs, stop/target rules, and risk sizing.
 6. Add a paper-trade journal with explicit lifecycle and restart-persistence design (without connecting an existing database).
-7. Add dashboard integration tests and operational startup/readiness checks.
+7. Expand dashboard integration tests and operational startup/readiness checks.
 8. Implement notification delivery only after delivery channels and secret handling are reviewed.
