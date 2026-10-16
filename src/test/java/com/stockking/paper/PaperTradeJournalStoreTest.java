@@ -61,6 +61,19 @@ class PaperTradeJournalStoreTest {
     }
 
     @Test
+    void duplicateTradeIdsAreRejectedBeforeWriting() {
+        PaperTradeLedger.Trade first = openTrade("signal-1");
+        PaperTradeLedger.Trade duplicateTradeId = new PaperTradeLedger.Trade(
+                first.tradeId(), "signal-2", first.strategyId(), first.instrumentId(), first.side(),
+                first.quantity(), first.entryPrice(), first.stopPrice(), first.targetPrice(), first.status(),
+                first.openedAt(), first.closedAt(), first.exitPrice(), first.realizedGrossPnl(), first.lastReason());
+        PaperTradeJournalStore store = new PaperTradeJournalStore(tempDir.resolve("journal.json"), mapper());
+
+        assertThrows(IOException.class, () -> store.save(List.of(first, duplicateTradeId)));
+        assertTrue(Files.notExists(tempDir.resolve("journal.json")));
+    }
+
+    @Test
     void malformedJournalFailsClosedAndIsNotReplaced() throws Exception {
         Path path = tempDir.resolve("journal.json");
         Files.writeString(path, "{not-json");
