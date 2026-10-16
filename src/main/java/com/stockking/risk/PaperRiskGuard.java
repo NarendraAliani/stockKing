@@ -71,6 +71,12 @@ public final class PaperRiskGuard {
         return decision(true, Rejection.NONE);
     }
 
+    /** Rolls back an entry reservation when the paper ledger could not commit it. */
+    public synchronized void cancelEntryReservation() {
+        rollTradingDayIfNeeded();
+        if (entries > 0) entries--;
+    }
+
     public synchronized void recordClosedTrade(BigDecimal realizedPnl) {
         rollTradingDayIfNeeded();
         if (realizedPnl == null) throw new IllegalArgumentException("Realized P&L is required");
