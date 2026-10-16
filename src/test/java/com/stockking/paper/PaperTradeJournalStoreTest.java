@@ -144,6 +144,22 @@ class PaperTradeJournalStoreTest {
     }
 
     @Test
+    void invalidTradePricesAreRejectedBeforeWriting() {
+        PaperTradeLedger.Trade valid = openTrade("valid-price");
+        PaperTradeLedger.Trade invalidPrice = new PaperTradeLedger.Trade(
+                valid.tradeId(), valid.signalId(), valid.strategyId(), valid.instrumentId(), valid.side(),
+                valid.quantity(), BigDecimal.ZERO, valid.stopPrice(), valid.targetPrice(), valid.status(),
+                valid.openedAt(), valid.closedAt(), valid.exitPrice(), valid.realizedGrossPnl(), valid.lastReason());
+        Path path = tempDir.resolve("journal.json");
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
+
+        IOException error = assertThrows(IOException.class, () -> store.save(List.of(invalidPrice)));
+
+        assertEquals("Paper journal contains a non-positive trade price", error.getMessage());
+        assertTrue(Files.notExists(path));
+    }
+
+    @Test
     void duplicateSignalIdsAreRejectedBeforeWriting() {
         PaperTradeJournalStore store = new PaperTradeJournalStore(tempDir.resolve("journal.json"), mapper());
 
