@@ -5,6 +5,8 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 
 /** In-memory paper-only entry and realized-loss guard; never routes orders. */
@@ -30,6 +32,33 @@ public final class PaperRiskGuard {
         }
         this.startingCapital = startingCapital;
         this.tradingDate = LocalDate.now(clock.withZone(tradingZone));
+    }
+
+
+    /** Reconstructs today's risk counters from persisted paper trades during startup. */
+    public synchronized void restoreFromTrades(List<com.stockking.paper.PaperTradeLedger.Trade> trades) {
+        rollTradingDayIfNeeded();
+        entries = 0;
+        consecutiveLosses = 0;
+        dailyRealizedPnl = BigDecimal.ZERO;
+        LocalDate today = LocalDate.now(clock.withZone(tradingZone));
+        List<com.stockking.paper.PaperTradeLedger.Trade> todaysTrades = trades.stream()
+                .filter(trade -> LocalDate.ofInstant(trade.openedAt(), tradingZone).equals(today))
+                .toList();
+        entries = todaysTrades.size();
+        todaysTrades.stream()
+                .filter(trade -> trade.status() == com.stockking.paper.PaperTradeLedger.Status.CLOSED
+                        && trade.closedAt() != null
+                        && LocalDate.ofInstant(trade.closedAt(), tradingZone).equals(today))
+                .sorted(Comparator.comparing(com.stockking.paper.PaperTradeLedger.Trade::closedAt))
+                .forEach(trade -> {
+                    BigDecimal pnl = trade.realizedGrossPnl();
+                    if (pnl != null) {
+                        dailyRealizedPnl = dailyRealizedPnl.add(pnl);
+                        if (pnl.signum() < 0) consecutiveLosses++;
+                        else if (pnl.signum() > 0) consecutiveLosses = 0;
+                    }
+                });
     }
 
     public synchronized EntryDecision authorizeEntry() {
