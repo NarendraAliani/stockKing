@@ -79,8 +79,20 @@ class PaperTradeJournalStoreTest {
         Files.writeString(path, "{not-json");
         PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
 
-        assertThrows(IOException.class, store::load);
+        IOException error = assertThrows(IOException.class, store::load);
+        assertTrue(error.getMessage().contains("unreadable or malformed"));
         assertEquals("{not-json", Files.readString(path));
+    }
+
+    @Test
+    void directoryAtJournalPathFailsWithActionableMessage() throws Exception {
+        Path path = tempDir.resolve("journal-directory");
+        Files.createDirectory(path);
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
+
+        IOException error = assertThrows(IOException.class, store::load);
+        assertEquals("Paper journal path is not a regular file", error.getMessage());
+        assertTrue(Files.isDirectory(path));
     }
 
     @Test
