@@ -28,7 +28,8 @@ public final class PaperTradeLedger {
     private final Map<String, Trade> tradesBySignalId = new LinkedHashMap<>();
 
     public PaperTradeLedger(Clock clock) {
-        this(clock, null);
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.journalStore = null;
     }
 
     /**
