@@ -74,6 +74,27 @@ class PaperTradeJournalStoreTest {
     }
 
     @Test
+    void serializationFailurePreservesLastKnownGoodJournalAndCleansTemporaryFile() throws Exception {
+        Path path = tempDir.resolve("journal.json");
+        String knownGood = "{\\"schemaVersion\\":1,\\"trades\\":[]}";
+        Files.writeString(path, knownGood);
+        ObjectMapper failingMapper = new ObjectMapper() {
+            @Override
+            public void writeValue(java.io.File resultFile, Object value) throws IOException {
+                throw new IOException("simulated serialization failure");
+            }
+        };
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, failingMapper);
+
+        assertThrows(IOException.class, () -> store.save(List.of(openTrade("new-trade"))));
+
+        assertEquals(knownGood, Files.readString(path));
+        try (var files = Files.list(tempDir)) {
+            assertEquals(List.of(path), files.toList());
+        }
+    }
+
+    @Test
     void malformedJournalFailsClosedAndIsNotReplaced() throws Exception {
         Path path = tempDir.resolve("journal.json");
         Files.writeString(path, "{not-json");
