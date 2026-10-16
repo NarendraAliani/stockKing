@@ -97,3 +97,20 @@ open/closed trade round-trips, malformed input, unsupported versions, and duplic
 ledger. The app therefore continues to reset paper trades on restart. Persistence remains
 disabled until startup restore, opt-in configuration, and failure/recovery integration tests are
 complete. No database or broker integration is involved.
+
+
+### Opt-in restart-safe paper journal
+
+The local JSON journal can now be enabled explicitly. It remains **disabled by default**:
+
+```powershell
+$env:STOCKKING_PAPER_PERSISTENCE_ENABLED = "true"
+$env:STOCKKING_PAPER_JOURNAL_PATH = "D:\StockKing\data\paper-journal.json"
+.app.bat
+```
+
+The journal path is local-file storage only and is independent of any database. On startup, the app loads and validates the journal; an invalid or unsupported journal prevents startup rather than silently resetting trade history. Each successful ledger open/close is written before the in-memory ledger changes. If a write fails, the operation is rejected and the entry risk reservation is rolled back.
+
+When persistence is enabled, today's entry count, realized daily gross P&L, and consecutive-loss count are reconstructed from journal timestamps. Trades and risk counters remain paper-only. Back up the journal file if you need to preserve it; this is not a substitute for a tested backup/restore process, and filesystem atomic-move/durability guarantees vary by platform.
+
+To disable persistence for a run, set `STOCKKING_PAPER_PERSISTENCE_ENABLED=false` or remove the variable. Do not point the journal path at a database file or credentials file.
