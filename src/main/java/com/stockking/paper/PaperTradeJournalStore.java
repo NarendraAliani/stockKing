@@ -36,11 +36,20 @@ public final class PaperTradeJournalStore {
      */
     public synchronized List<PaperTradeLedger.Trade> load() throws IOException {
         if (!Files.exists(journalPath)) return List.of();
+        if (!Files.isRegularFile(journalPath)) {
+            throw new IOException("Paper journal path is not a regular file");
+        }
         long size = Files.size(journalPath);
         if (size > MAX_JOURNAL_BYTES) {
             throw new IOException("Paper journal exceeds the 10 MiB safety limit");
         }
-        JournalDocument document = objectMapper.readValue(journalPath.toFile(), JournalDocument.class);
+        JournalDocument document;
+        try {
+            document = objectMapper.readValue(journalPath.toFile(), JournalDocument.class);
+        } catch (IOException unreadable) {
+            throw new IOException("Paper journal is unreadable or malformed; the existing file was left unchanged",
+                    unreadable);
+        }
         if (document == null || document.schemaVersion() != CURRENT_SCHEMA_VERSION) {
             throw new IOException("Unsupported or missing paper journal schema version");
         }
