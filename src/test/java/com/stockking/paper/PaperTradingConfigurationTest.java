@@ -8,8 +8,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import com.stockking.risk.PaperRiskGuard;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -58,6 +60,28 @@ class PaperTradingConfigurationTest {
 
         assertEquals(1, restored.allTrades().size());
         assertEquals("configured-restore", restored.allTrades().getFirst().signalId());
+    }
+
+    @Test
+    void applicationConfigurationRestoresRiskCountersFromPersistedClosedTrades() throws Exception {
+        Path path = tempDir.resolve("risk-journal.json");
+        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
+        PaperTradeLedger original = new PaperTradeLedger(clock);
+        original.open(signal("config-loss-1"));
+        original.close("config-loss-1", new BigDecimal("90"), "TEST_LOSS");
+        original.open(signal("config-loss-2"));
+        original.close("config-loss-2", new BigDecimal("90"), "TEST_LOSS");
+        new PaperTradeJournalStore(path, mapper()).save(original.allTrades());
+        PaperTradingConfiguration configuration = new PaperTradingConfiguration();
+
+        PaperTradeLedger restored = configuration.paperTradeLedger(clock, mapper(), true, path.toString());
+        PaperRiskGuard guard = configuration.paperRiskGuard(
+                clock, new BigDecimal("100000"), "Asia/Kolkata");
+        configuration.paperTradingService(restored, guard);
+
+        assertEquals(2, guard.snapshot().entriesUsed());
+        assertEquals(new BigDecimal("-20"), guard.snapshot().dailyPnl());
+        assertEquals(PaperRiskGuard.Rejection.CONSECUTIVE_LOSS_LIMIT, guard.snapshot().rejection());
     }
 
     @Test
