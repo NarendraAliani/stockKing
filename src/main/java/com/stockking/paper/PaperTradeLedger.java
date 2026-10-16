@@ -1,15 +1,17 @@
 package com.stockking.paper;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Thread-safe in-memory paper ledger with no broker, database, or network integration. */
+/** Thread-safe paper ledger with optional local persistence and no broker/database/network integration. */
 public final class PaperTradeLedger {
     public enum Side { BUY, SELL }
     public enum Status { OPEN, CLOSED }
@@ -22,10 +24,27 @@ public final class PaperTradeLedger {
             Instant openedAt, Instant closedAt, BigDecimal exitPrice, BigDecimal realizedGrossPnl, String lastReason) {}
 
     private final Clock clock;
+    private final PaperTradeJournalStore journalStore;
     private final Map<String, Trade> tradesBySignalId = new LinkedHashMap<>();
 
     public PaperTradeLedger(Clock clock) {
+        this(clock, null);
+    }
+
+    /**
+     * Loads the existing journal when a store is supplied. Corrupt journals fail construction
+     * rather than starting with an empty ledger and risking accidental history loss.
+     */
+    public PaperTradeLedger(Clock clock, PaperTradeJournalStore journalStore) throws IOException {
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.journalStore = journalStore;
+        if (journalStore != null) {
+            for (Trade trade : journalStore.load()) {
+                if (tradesBySignalId.putIfAbsent(trade.signalId(), trade) != null) {
+                    throw new IOException("Paper journal contains duplicate signal IDs");
+                }
+            }
+        }
     }
 
     public synchronized Trade open(Signal signal) {
@@ -35,6 +54,7 @@ public final class PaperTradeLedger {
         Trade trade = new Trade("PAPER-" + signal.signalId(), signal.signalId(), signal.strategyId(),
                 signal.instrumentId(), signal.side(), signal.quantity(), signal.entryPrice(), signal.stopPrice(),
                 signal.targetPrice(), Status.OPEN, clock.instant(), null, null, BigDecimal.ZERO, "PAPER_OPEN");
+        persistCandidate(trade);
         tradesBySignalId.put(signal.signalId(), trade);
         return trade;
     }
@@ -52,8 +72,24 @@ public final class PaperTradeLedger {
         Trade closed = new Trade(current.tradeId(), current.signalId(), current.strategyId(), current.instrumentId(),
                 current.side(), current.quantity(), current.entryPrice(), current.stopPrice(), current.targetPrice(),
                 Status.CLOSED, current.openedAt(), clock.instant(), exitPrice, pnl, reason);
+        persistCandidate(closed);
         tradesBySignalId.put(signalId, closed);
         return closed;
+    }
+
+    private void persistCandidate(Trade candidate) {
+        if (journalStore == null) return;
+        List<Trade> snapshot = new ArrayList<>(tradesBySignalId.values());
+        if (tradesBySignalId.containsKey(candidate.signalId())) {
+            snapshot.replaceAll(trade -> trade.signalId().equals(candidate.signalId()) ? candidate : trade);
+        } else {
+            snapshot.add(candidate);
+        }
+        try {
+            journalStore.save(snapshot);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Paper journal write failed; ledger change was not applied", exception);
+        }
     }
 
     public synchronized Optional<Trade> findBySignalId(String signalId) {
