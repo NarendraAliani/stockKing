@@ -76,7 +76,9 @@ class PaperTradeJournalStoreTest {
     @Test
     void serializationFailurePreservesLastKnownGoodJournalAndCleansTemporaryFile() throws Exception {
         Path path = tempDir.resolve("journal.json");
-        String knownGood = "{\"schemaVersion\":1,\"trades\":[]}";
+        String knownGood = """
+                {"schemaVersion":1,"trades":[]}
+                """;
         Files.writeString(path, knownGood);
         ObjectMapper failingMapper = new ObjectMapper() {
             @Override
