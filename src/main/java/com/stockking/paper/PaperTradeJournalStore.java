@@ -58,13 +58,16 @@ public final class PaperTradeJournalStore {
         Path parent = journalPath.getParent();
         if (parent == null) throw new IOException("Paper journal must have a parent directory");
         Files.createDirectories(parent);
-        Path temporary = Files.createTempFile(parent, journalPath.getFileName().toString(), ".tmp");
+        Path temporary = Files.createTempFile(parent, "paper-journal-", ".tmp");
         boolean moved = false;
         try {
             objectMapper.writeValue(temporary.toFile(),
                     new JournalDocument(CURRENT_SCHEMA_VERSION, List.copyOf(trades)));
             try (FileChannel channel = FileChannel.open(temporary, StandardOpenOption.WRITE)) {
                 channel.force(true);
+            }
+            if (Files.size(temporary) > MAX_JOURNAL_BYTES) {
+                throw new IOException("Paper journal exceeds the 10 MiB safety limit");
             }
             try {
                 Files.move(temporary, journalPath, StandardCopyOption.ATOMIC_MOVE,
@@ -95,13 +98,30 @@ public final class PaperTradeJournalStore {
             if (!signalIds.add(trade.signalId())) {
                 throw new IOException("Paper journal contains duplicate signal IDs");
             }
-            if (trade.status() == PaperTradeLedger.Status.CLOSED
-                    && (trade.closedAt() == null || trade.exitPrice() == null
-                    || trade.realizedGrossPnl() == null)) {
-                throw new IOException("Closed paper trade is missing close details");
+            if (trade.entryPrice().signum() <= 0 || trade.stopPrice().signum() <= 0
+                    || trade.targetPrice().signum() <= 0) {
+                throw new IOException("Paper journal contains a non-positive trade price");
             }
-            if (trade.status() == PaperTradeLedger.Status.OPEN && trade.closedAt() != null) {
-                throw new IOException("Open paper trade unexpectedly has a close timestamp");
+            boolean validStops = trade.side() == PaperTradeLedger.Side.BUY
+                    ? trade.stopPrice().compareTo(trade.entryPrice()) < 0
+                            && trade.targetPrice().compareTo(trade.entryPrice()) > 0
+                    : trade.stopPrice().compareTo(trade.entryPrice()) > 0
+                            && trade.targetPrice().compareTo(trade.entryPrice()) < 0;
+            if (!validStops) throw new IOException("Paper journal contains stop/target values inconsistent with trade side");
+            if (trade.status() == PaperTradeLedger.Status.CLOSED) {
+                if (trade.closedAt() == null || trade.exitPrice() == null
+                        || trade.realizedGrossPnl() == null || trade.lastReason() == null
+                        || trade.lastReason().isBlank()) {
+                    throw new IOException("Closed paper trade is missing close details");
+                }
+                if (!trade.closedAt().isAfter(trade.openedAt()) || trade.exitPrice().signum() <= 0) {
+                    throw new IOException("Closed paper trade has invalid close time or exit price");
+                }
+            } else {
+                if (trade.closedAt() != null || trade.exitPrice() != null
+                        || trade.realizedGrossPnl() == null || trade.realizedGrossPnl().signum() != 0) {
+                    throw new IOException("Open paper trade contains invalid close details");
+                }
             }
         }
     }
