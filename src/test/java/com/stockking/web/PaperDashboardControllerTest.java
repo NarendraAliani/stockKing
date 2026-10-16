@@ -97,6 +97,27 @@ class PaperDashboardControllerTest {
     }
 
     @Test
+    void csvExportQuotesCellsAndNeutralizesSpreadsheetFormulas() {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-15T07:00:00Z"), ZoneOffset.UTC);
+        PaperTradeLedger ledger = new PaperTradeLedger(clock);
+        ledger.open(new PaperTradeLedger.Signal("=SUM(1,1)", "strategy-a", "TEST",
+                PaperTradeLedger.Side.BUY, clock.instant(), new BigDecimal("100"),
+                new BigDecimal("95"), new BigDecimal("110"), 1));
+        PaperDashboardController controller = new PaperDashboardController(ledger,
+                new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
+                        clock, ZoneId.of("Asia/Kolkata")));
+
+        var response = controller.exportTradesCsv();
+
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(response.getHeaders().getFirst("Content-Disposition").contains("paper-trades.csv"));
+        assertTrue(response.getBody().startsWith("tradeId,signalId,strategyId"));
+        assertTrue(response.getBody().contains("\\"'=SUM(1,1)\\""));
+        assertTrue(response.getBody().endsWith("\\r\\n"));
+        assertFalse(response.getBody().contains(",\\r\\n"));
+    }
+
+    @Test
     void riskEndpointIsReadOnlyAndReportsLiveTradingDisabled() {
         Clock clock = Clock.fixed(Instant.parse("2026-10-15T07:00:00Z"), ZoneOffset.UTC);
         PaperDashboardController controller = new PaperDashboardController(
