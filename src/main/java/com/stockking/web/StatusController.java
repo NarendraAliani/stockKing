@@ -10,7 +10,7 @@ public class StatusController {
     public Map<String, String> status() {
         return Map.of(
             "application", "StockKing",
-            "status", "starting",
+            "status", "ok",
             "tradingMode", "paper",
             "liveTrading", "disabled"
         );
