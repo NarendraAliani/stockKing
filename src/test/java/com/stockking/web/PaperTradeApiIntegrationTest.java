@@ -37,9 +37,9 @@ class PaperTradeApiIntegrationTest {
         mockMvc.perform(get("/api/paper/trades/export.csv"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
-                .andExpect(header().string("Content-Disposition", "attachment; filename=\\"paper-trades.csv\\""))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"paper-trades.csv\""))
                 .andExpect(content().string(org.hamcrest.Matchers.startsWith("tradeId,signalId,strategyId")))
-                .andExpect(content().string(org.hamcrest.Matchers.endsWith("\\r\\n")));
+                .andExpect(content().string(org.hamcrest.Matchers.endsWith("\r\n")));
     }
 
     @Test
