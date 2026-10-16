@@ -67,6 +67,32 @@ class PaperTradePersistenceIntegrationTest {
     }
 
     @Test
+    void failedCloseJournalWriteKeepsTradeOpenAndRiskUnchanged() throws Exception {
+        Path path = tempDir.resolve("close-failure-journal.json");
+        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
+        PaperTradeLedger initial = ledger(path, clock);
+        initial.open(buy("close-write-failure"));
+
+        PaperTradeLedger restored = ledger(path, clock);
+        PaperRiskGuard guard = new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
+                clock, ZoneId.of("Asia/Kolkata"));
+        guard.restoreFromTrades(restored.allTrades());
+        PaperTradingService service = new PaperTradingService(restored, guard);
+        var riskBefore = guard.snapshot();
+
+        java.nio.file.Files.delete(path);
+        java.nio.file.Files.createDirectory(path);
+
+        assertThrows(IllegalStateException.class,
+                () -> service.close("close-write-failure", new BigDecimal("90"), "TEST_LOSS"));
+        assertEquals(PaperTradeLedger.Status.OPEN,
+                restored.findBySignalId("close-write-failure").orElseThrow().status());
+        assertEquals(riskBefore.dailyPnl(), guard.snapshot().dailyPnl());
+        assertEquals(riskBefore.entriesUsed(), guard.snapshot().entriesUsed());
+        assertEquals(riskBefore.rejection(), guard.snapshot().rejection());
+    }
+
+    @Test
     void riskCountersCanBeReconstructedFromRestoredTrades() throws Exception {
         Path path = tempDir.resolve("risk-journal.json");
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
