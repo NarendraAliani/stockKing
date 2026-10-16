@@ -70,7 +70,7 @@ public class PaperDashboardController {
         appendCsvCell(csv, trade.exitPrice() == null ? "" : trade.exitPrice().toPlainString(), false);
         appendCsvCell(csv, trade.realizedGrossPnl() == null ? "" : trade.realizedGrossPnl().toPlainString(), false);
         appendCsvCell(csv, trade.lastReason() == null ? "" : trade.lastReason(), true);
-        csv.append("\\r\\n");
+        csv.setLength(csv.length() - 1);\n        csv.append("\r\n");
     }
 
     private static void appendCsvCell(StringBuilder csv, String value, boolean untrustedText) {
