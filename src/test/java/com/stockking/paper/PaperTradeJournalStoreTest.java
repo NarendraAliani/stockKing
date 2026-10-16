@@ -117,6 +117,20 @@ class PaperTradeJournalStoreTest {
     }
 
     @Test
+    void oversizedJournalFailsClosedWithoutChangingFile() throws Exception {
+        Path path = tempDir.resolve("journal.json");
+        byte[] oversized = new byte[10 * 1024 * 1024 + 1];
+        java.util.Arrays.fill(oversized, (byte) ' ');
+        Files.write(path, oversized);
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
+
+        IOException error = assertThrows(IOException.class, store::load);
+
+        assertEquals("Paper journal exceeds the 10 MiB safety limit", error.getMessage());
+        assertEquals(oversized.length, Files.size(path));
+    }
+
+    @Test
     void unsupportedSchemaVersionFailsClosed() throws Exception {
         Path path = tempDir.resolve("journal.json");
         Files.writeString(path, """
