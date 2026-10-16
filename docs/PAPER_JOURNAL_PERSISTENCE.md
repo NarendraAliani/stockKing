@@ -29,7 +29,7 @@ On startup, load and validate the version before making the ledger available. Mi
 ## Rollout stages
 
 1. Implement the standalone store with schema/version validation and atomic replacement.
-2. Add tests for missing file, round-trip of open and closed trades, malformed JSON, unsupported schema, duplicate IDs, failed open writes, and failed close writes that must leave the trade and risk state unchanged.
+2. Add tests for missing file, round-trip of open and closed trades, malformed JSON, unsupported schema, duplicate IDs, failed open writes, failed close writes that must leave the trade and risk state unchanged, and serialization failures that preserve the last known-good journal and clean up temporary files.
 3. Add explicit opt-in configuration, defaulting off.
 4. Integrate ledger snapshots and startup restore behind the opt-in configuration. (Implemented.)
 5. Add configuration-level tests proving disabled mode leaves an existing journal untouched, enabled mode restores through application configuration, risk counters recover from closed losses, and invalid journals fail closed. (Covered by PaperTradingConfigurationTest; full Spring-context startup coverage remains a follow-up.)
@@ -42,7 +42,7 @@ No broker integration, live orders, database connectivity, cloud sync, automatic
 ## Current implementation notes
 
 - Configuration keys: `stockking.paper.persistence.enabled` (default `false`) and `stockking.paper.persistence.path` (default `./data/paper-journal.json`). Environment overrides are `STOCKKING_PAPER_PERSISTENCE_ENABLED` and `STOCKKING_PAPER_JOURNAL_PATH`.
-- The journal is limited to 10 MiB on both load and save. Saved snapshots are written to a sibling temporary file, flushed, and moved into place; atomic replacement is used when supported.
+- The journal is limited to 10 MiB on both load and save. Saved snapshots are written to a sibling temporary file, flushed, and moved into place; atomic replacement is used when supported. Serialization failures leave the previous journal bytes intact and clean up the temporary file.
 - Trade records are validated for unique signal and trade IDs, positive prices and quantities, stop/target direction, and consistent open/closed fields. Unsupported schemas, malformed data, and directory paths fail closed with actionable errors that do not echo journal contents.
 - Risk restoration counts entries opened on the current trading date and realized P&L for trades closed on that date. Historical trades remain in the journal across trading-day rollover while daily risk counters reset for the new date. P&L is gross and does not include fees, taxes, or slippage.
 - A local journal is not encrypted and is not a database or backup system. Keep it in a private, access-controlled directory and back it up separately if required.
