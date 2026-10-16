@@ -21,7 +21,12 @@ public final class PaperTradingService {
 
         var decision = riskGuard.authorizeEntry();
         if (!decision.allowed()) throw new RiskRejectedException(decision.rejection().name());
-        return ledger.open(signal);
+        try {
+            return ledger.open(signal);
+        } catch (RuntimeException failure) {
+            riskGuard.cancelEntryReservation();
+            throw failure;
+        }
     }
 
     public synchronized PaperTradeLedger.Trade close(String signalId, BigDecimal exitPrice, String reason) {
