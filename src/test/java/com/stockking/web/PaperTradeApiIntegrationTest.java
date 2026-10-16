@@ -2,6 +2,7 @@ package com.stockking.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,6 +30,16 @@ class PaperTradeApiIntegrationTest {
     void unknownSignalReturnsNotFoundOverHttp() throws Exception {
         mockMvc.perform(get("/api/paper/trades/{signalId}", "missing-signal-for-test"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void csvExportReturnsDownloadWithHeaderWhenLedgerIsEmpty() throws Exception {
+        mockMvc.perform(get("/api/paper/trades/export.csv"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\\"paper-trades.csv\\""))
+                .andExpect(content().string(org.hamcrest.Matchers.startsWith("tradeId,signalId,strategyId")))
+                .andExpect(content().string(org.hamcrest.Matchers.endsWith("\\r\\n")));
     }
 
     @Test
