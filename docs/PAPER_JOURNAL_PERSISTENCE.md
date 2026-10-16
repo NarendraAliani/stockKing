@@ -32,7 +32,7 @@ On startup, load and validate the version before making the ledger available. Mi
 2. Add tests for missing file, round-trip of open and closed trades, malformed JSON, unsupported schema, duplicate IDs, and write failure.
 3. Add explicit opt-in configuration, defaulting off.
 4. Integrate ledger snapshots and startup restore behind the opt-in configuration. (Implemented.)
-5. Add configuration-level tests proving disabled mode leaves an existing journal untouched, enabled mode restores through application configuration, and invalid journals fail closed. (Covered by PaperTradingConfigurationTest; full Spring-context startup coverage remains a follow-up.)
+5. Add configuration-level tests proving disabled mode leaves an existing journal untouched, enabled mode restores through application configuration, risk counters recover from closed losses, and invalid journals fail closed. (Covered by PaperTradingConfigurationTest; full Spring-context startup coverage remains a follow-up.)
 
 ## Explicitly out of scope
 
