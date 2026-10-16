@@ -1,0 +1,91 @@
+package com.stockking.paper;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+class PaperTradeJournalStoreTest {
+    @TempDir
+    Path tempDir;
+
+    private ObjectMapper mapper() {
+        return new ObjectMapper().findAndRegisterModules();
+    }
+
+    private PaperTradeLedger.Trade openTrade(String signalId) {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-15T07:00:00Z"), ZoneOffset.UTC);
+        return new PaperTradeLedger(clock).open(new PaperTradeLedger.Signal(signalId, "strategy-a", "TEST",
+                PaperTradeLedger.Side.BUY, clock.instant(), new BigDecimal("100"),
+                new BigDecimal("95"), new BigDecimal("110"), 2));
+    }
+
+    @Test
+    void missingJournalLoadsAsEmptyWithoutCreatingAFile() throws Exception {
+        Path path = tempDir.resolve("journal.json");
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
+
+        assertTrue(store.load().isEmpty());
+        assertTrue(Files.notExists(path));
+    }
+
+    @Test
+    void savesAndRestoresOpenAndClosedTrades() throws Exception {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-15T07:00:00Z"), ZoneOffset.UTC);
+        PaperTradeLedger ledger = new PaperTradeLedger(clock);
+        ledger.open(new PaperTradeLedger.Signal("open-1", "strategy-a", "TEST",
+                PaperTradeLedger.Side.BUY, clock.instant(), new BigDecimal("100"),
+                new BigDecimal("95"), new BigDecimal("110"), 2));
+        ledger.open(new PaperTradeLedger.Signal("closed-1", "strategy-a", "TEST",
+                PaperTradeLedger.Side.SELL, clock.instant(), new BigDecimal("100"),
+                new BigDecimal("105"), new BigDecimal("90"), 1));
+        ledger.close("closed-1", new BigDecimal("95"), "PAPER_TEST_EXIT");
+        Path path = tempDir.resolve("nested").resolve("journal.json");
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
+
+        store.save(ledger.allTrades());
+
+        assertEquals(ledger.allTrades(), store.load());
+        assertTrue(Files.exists(path));
+    }
+
+    @Test
+    void malformedJournalFailsClosedAndIsNotReplaced() throws Exception {
+        Path path = tempDir.resolve("journal.json");
+        Files.writeString(path, "{not-json");
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
+
+        assertThrows(IOException.class, store::load);
+        assertEquals("{not-json", Files.readString(path));
+    }
+
+    @Test
+    void unsupportedSchemaVersionFailsClosed() throws Exception {
+        Path path = tempDir.resolve("journal.json");
+        Files.writeString(path, """
+                {"schemaVersion":999,"trades":[]}
+                """);
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, mapper());
+
+        assertThrows(IOException.class, store::load);
+    }
+
+    @Test
+    void duplicateSignalIdsAreRejectedBeforeWriting() {
+        PaperTradeJournalStore store = new PaperTradeJournalStore(tempDir.resolve("journal.json"), mapper());
+
+        assertThrows(IOException.class, () -> store.save(List.of(openTrade("duplicate"), openTrade("duplicate"))));
+        assertTrue(Files.notExists(tempDir.resolve("journal.json")));
+    }
+}
