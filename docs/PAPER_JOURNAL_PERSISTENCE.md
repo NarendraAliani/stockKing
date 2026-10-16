@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation plan. The current paper ledger remains in-memory only; this document does not enable persistence.
+Implemented behind explicit opt-in configuration. Persistence is disabled by default; when enabled, the paper ledger uses the local JSON journal store.
 
 ## Constraints
 
@@ -37,3 +37,12 @@ On startup, load and validate the version before making the ledger available. Mi
 ## Explicitly out of scope
 
 No broker integration, live orders, database connectivity, cloud sync, automatic journal deletion, or claims of guaranteed durability across all filesystems.
+
+
+## Current implementation notes
+
+- Configuration keys: `stockking.paper.persistence.enabled` (default `false`) and `stockking.paper.persistence.path` (default `./data/paper-journal.json`). Environment overrides are `STOCKKING_PAPER_PERSISTENCE_ENABLED` and `STOCKKING_PAPER_JOURNAL_PATH`.
+- The journal is limited to 10 MiB on both load and save. Saved snapshots are written to a sibling temporary file, flushed, and moved into place; atomic replacement is used when supported.
+- Trade records are validated for unique signal IDs, positive prices and quantities, stop/target direction, and consistent open/closed fields. Unsupported schemas and malformed data fail closed.
+- Risk restoration counts entries opened on the current trading date and realized P&L for trades closed on that date. P&L is gross and does not include fees, taxes, or slippage.
+- A local journal is not encrypted and is not a database or backup system. Keep it in a private, access-controlled directory and back it up separately if required.
