@@ -24,15 +24,15 @@ For each update:
 4. Replace the target with an atomic move when supported; otherwise use a documented replace fallback.
 5. Clean up the temporary file after failures without deleting the last known-good journal.
 
-On startup, load and validate the version before making the ledger available. Missing journal means an empty ledger only when persistence is explicitly enabled and the configured path does not exist. Invalid JSON, unsupported versions, invalid trade states, and duplicate signal IDs should prevent startup rather than silently discard history.
+On startup, load and validate the version before making the ledger available. Missing journal means an empty ledger only when persistence is explicitly enabled and the configured path does not exist. Invalid JSON, unsupported versions, invalid trade states, and duplicate signal or trade IDs should prevent startup rather than silently discard history.
 
 ## Rollout stages
 
 1. Implement the standalone store with schema/version validation and atomic replacement.
 2. Add tests for missing file, round-trip of open and closed trades, malformed JSON, unsupported schema, duplicate IDs, and write failure.
 3. Add explicit opt-in configuration, defaulting off.
-4. Integrate ledger snapshots and startup restore only after store tests pass.
-5. Add integration tests proving disabled mode performs no file I/O and enabled mode restores paper trades after restart.
+4. Integrate ledger snapshots and startup restore behind the opt-in configuration. (Implemented.)
+5. Add Spring-context tests proving disabled mode performs no journal file I/O, enabled mode restores through application configuration, and invalid journals fail startup. (Remaining verification.)
 
 ## Explicitly out of scope
 
@@ -43,6 +43,6 @@ No broker integration, live orders, database connectivity, cloud sync, automatic
 
 - Configuration keys: `stockking.paper.persistence.enabled` (default `false`) and `stockking.paper.persistence.path` (default `./data/paper-journal.json`). Environment overrides are `STOCKKING_PAPER_PERSISTENCE_ENABLED` and `STOCKKING_PAPER_JOURNAL_PATH`.
 - The journal is limited to 10 MiB on both load and save. Saved snapshots are written to a sibling temporary file, flushed, and moved into place; atomic replacement is used when supported.
-- Trade records are validated for unique signal IDs, positive prices and quantities, stop/target direction, and consistent open/closed fields. Unsupported schemas and malformed data fail closed.
+- Trade records are validated for unique signal and trade IDs, positive prices and quantities, stop/target direction, and consistent open/closed fields. Unsupported schemas and malformed data fail closed.
 - Risk restoration counts entries opened on the current trading date and realized P&L for trades closed on that date. P&L is gross and does not include fees, taxes, or slippage.
 - A local journal is not encrypted and is not a database or backup system. Keep it in a private, access-controlled directory and back it up separately if required.
