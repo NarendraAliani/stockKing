@@ -57,9 +57,13 @@ class PaperTradePersistenceIntegrationTest {
         PaperTradeLedger ledger = new PaperTradeLedger(clock, store);
         java.nio.file.Files.createDirectory(path.getParent());
         java.nio.file.Files.createDirectory(path);
+        PaperRiskGuard guard = new PaperRiskGuard(RiskPolicy.initialDefaults(), new BigDecimal("100000"),
+                clock, ZoneId.of("Asia/Kolkata"));
+        PaperTradingService service = new PaperTradingService(ledger, guard);
 
-        assertThrows(IllegalStateException.class, () -> ledger.open(buy("write-failure")));
+        assertThrows(IllegalStateException.class, () -> service.open(buy("write-failure")));
         assertEquals(0, ledger.allTrades().size());
+        assertEquals(0, guard.snapshot().entriesUsed());
     }
 
     @Test
