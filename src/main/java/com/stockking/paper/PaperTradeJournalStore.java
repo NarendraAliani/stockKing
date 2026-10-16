@@ -1,0 +1,143 @@
+package com.stockking.paper;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * Local, versioned paper-trade journal storage for the optional paper ledger persistence feature.
+ * Application configuration only constructs this store when persistence is explicitly enabled.
+ */
+public final class PaperTradeJournalStore {
+    public static final int CURRENT_SCHEMA_VERSION = 1;
+    private static final long MAX_JOURNAL_BYTES = 10 * 1024 * 1024;
+
+    private final Path journalPath;
+    private final ObjectMapper objectMapper;
+
+    public PaperTradeJournalStore(Path journalPath, ObjectMapper objectMapper) {
+        this.journalPath = Objects.requireNonNull(journalPath, "journalPath")
+                .toAbsolutePath().normalize();
+        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+    }
+
+    /**
+     * Loads an existing journal. A missing file represents an empty journal; callers must decide
+     * whether that is acceptable for their configuration. Invalid journals are never overwritten.
+     */
+    public synchronized List<PaperTradeLedger.Trade> load() throws IOException {
+        if (!Files.exists(journalPath)) return List.of();
+        if (!Files.isRegularFile(journalPath)) {
+            throw new IOException("Paper journal path is not a regular file");
+        }
+        long size = Files.size(journalPath);
+        if (size > MAX_JOURNAL_BYTES) {
+            throw new IOException("Paper journal exceeds the 10 MiB safety limit");
+        }
+        JournalDocument document;
+        try {
+            document = objectMapper.readValue(journalPath.toFile(), JournalDocument.class);
+        } catch (IOException unreadable) {
+            throw new IOException("Paper journal is unreadable or malformed; the existing file was left unchanged",
+                    unreadable);
+        }
+        if (document == null || document.schemaVersion() != CURRENT_SCHEMA_VERSION) {
+            throw new IOException("Unsupported or missing paper journal schema version");
+        }
+        List<PaperTradeLedger.Trade> trades = document.trades();
+        validateTrades(trades);
+        return List.copyOf(trades);
+    }
+
+    /**
+     * Writes a complete snapshot to a sibling temporary file and replaces the target only after
+     * serialization and disk flush succeed. The previous journal is retained on pre-move failures.
+     */
+    public synchronized void save(List<PaperTradeLedger.Trade> trades) throws IOException {
+        validateTrades(trades);
+        Path parent = journalPath.getParent();
+        if (parent == null) throw new IOException("Paper journal must have a parent directory");
+        Files.createDirectories(parent);
+        Path temporary = Files.createTempFile(parent, "paper-journal-", ".tmp");
+        boolean moved = false;
+        try {
+            objectMapper.writeValue(temporary.toFile(),
+                    new JournalDocument(CURRENT_SCHEMA_VERSION, List.copyOf(trades)));
+            try (FileChannel channel = FileChannel.open(temporary, StandardOpenOption.WRITE)) {
+                channel.force(true);
+            }
+            if (Files.size(temporary) > MAX_JOURNAL_BYTES) {
+                throw new IOException("Paper journal exceeds the 10 MiB safety limit");
+            }
+            try {
+                Files.move(temporary, journalPath, StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException unsupported) {
+                Files.move(temporary, journalPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            moved = true;
+        } finally {
+            if (!moved) Files.deleteIfExists(temporary);
+        }
+    }
+
+    private static void validateTrades(List<PaperTradeLedger.Trade> trades) throws IOException {
+        if (trades == null) throw new IOException("Paper journal trades list is missing");
+        Set<String> signalIds = new HashSet<>();
+        Set<String> tradeIds = new HashSet<>();
+        for (PaperTradeLedger.Trade trade : trades) {
+            if (trade == null || trade.signalId() == null || trade.signalId().isBlank()
+                    || trade.tradeId() == null || trade.tradeId().isBlank()
+                    || trade.strategyId() == null || trade.strategyId().isBlank()
+                    || trade.instrumentId() == null || trade.instrumentId().isBlank()
+                    || trade.side() == null || trade.status() == null
+                    || trade.quantity() < 1 || trade.entryPrice() == null
+                    || trade.stopPrice() == null || trade.targetPrice() == null
+                    || trade.openedAt() == null) {
+                throw new IOException("Paper journal contains an invalid trade record");
+            }
+            if (!signalIds.add(trade.signalId())) {
+                throw new IOException("Paper journal contains duplicate signal IDs");
+            }
+            if (!tradeIds.add(trade.tradeId())) {
+                throw new IOException("Paper journal contains duplicate trade IDs");
+            }
+            if (trade.entryPrice().signum() <= 0 || trade.stopPrice().signum() <= 0
+                    || trade.targetPrice().signum() <= 0) {
+                throw new IOException("Paper journal contains a non-positive trade price");
+            }
+            boolean validStops = trade.side() == PaperTradeLedger.Side.BUY
+                    ? trade.stopPrice().compareTo(trade.entryPrice()) < 0
+                            && trade.targetPrice().compareTo(trade.entryPrice()) > 0
+                    : trade.stopPrice().compareTo(trade.entryPrice()) > 0
+                            && trade.targetPrice().compareTo(trade.entryPrice()) < 0;
+            if (!validStops) throw new IOException("Paper journal contains stop/target values inconsistent with trade side");
+            if (trade.status() == PaperTradeLedger.Status.CLOSED) {
+                if (trade.closedAt() == null || trade.exitPrice() == null
+                        || trade.realizedGrossPnl() == null || trade.lastReason() == null
+                        || trade.lastReason().isBlank()) {
+                    throw new IOException("Closed paper trade is missing close details");
+                }
+                if (trade.closedAt().isBefore(trade.openedAt()) || trade.exitPrice().signum() <= 0) {
+                    throw new IOException("Closed paper trade has invalid close time or exit price");
+                }
+            } else {
+                if (trade.closedAt() != null || trade.exitPrice() != null
+                        || trade.realizedGrossPnl() == null || trade.realizedGrossPnl().signum() != 0) {
+                    throw new IOException("Open paper trade contains invalid close details");
+                }
+            }
+        }
+    }
+
+    public record JournalDocument(int schemaVersion, List<PaperTradeLedger.Trade> trades) {}
+}
