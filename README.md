@@ -83,3 +83,17 @@ See [initial audit](docs/IMPORT_AUDIT.md) and [local run checklist](docs/LOCAL_R
 6. Design and test restart-safe paper-journal persistence as an opt-in local file store (without connecting an existing database).
 7. Expand dashboard integration tests and operational startup/readiness checks.
 8. Implement notification delivery only after delivery channels and secret handling are reviewed.
+
+
+### Paper journal persistence foundation
+
+A standalone, versioned local JSON journal store is being developed in
+`PaperTradeJournalStore`. It validates journal records, rejects duplicate signal IDs and
+unsupported schema versions, limits journal files to 10 MiB, and writes snapshots through a
+temporary file before replacing the journal. Its unit tests cover empty/missing journals,
+open/closed trade round-trips, malformed input, unsupported versions, and duplicate IDs.
+
+**Important:** this storage foundation is not yet wired into application startup or the in-memory
+ledger. The app therefore continues to reset paper trades on restart. Persistence remains
+disabled until startup restore, opt-in configuration, and failure/recovery integration tests are
+complete. No database or broker integration is involved.
