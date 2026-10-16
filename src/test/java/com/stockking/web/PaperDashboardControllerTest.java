@@ -112,9 +112,9 @@ class PaperDashboardControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertTrue(response.getHeaders().getFirst("Content-Disposition").contains("paper-trades.csv"));
         assertTrue(response.getBody().startsWith("tradeId,signalId,strategyId"));
-        assertTrue(response.getBody().contains("\\"'=SUM(1,1)\\""));
-        assertTrue(response.getBody().endsWith("\\r\\n"));
-        assertFalse(response.getBody().contains(",\\r\\n"));
+        assertTrue(response.getBody().contains("\"'=SUM(1,1)\""));
+        assertTrue(response.getBody().endsWith("\r\n"));
+        assertFalse(response.getBody().contains(",\r\n"));
     }
 
     @Test
