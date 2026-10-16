@@ -77,7 +77,7 @@ public class PaperDashboardController {
     private static void appendCsvCell(StringBuilder csv, String value, boolean untrustedText) {
         String safeValue = value == null ? "" : value;
         if (untrustedText && !safeValue.isEmpty()
-                && "=+-@\\t\\r".indexOf(safeValue.charAt(0)) >= 0) {
+                && "=+-@\t\r".indexOf(safeValue.charAt(0)) >= 0) {
             safeValue = "'" + safeValue;
         }
         csv.append('"').append(safeValue.replace("\"", "\"\"")).append('"').append(',');
