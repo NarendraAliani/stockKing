@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -27,6 +28,33 @@ class PaperTradePersistenceIntegrationTest {
 
     private PaperTradeLedger ledger(Path path, Clock clock) throws Exception {
         return new PaperTradeLedger(clock, new PaperTradeJournalStore(path, mapper()));
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant instant;
+
+        private MutableClock(Instant instant) {
+            this.instant = instant;
+        }
+
+        void setInstant(Instant instant) {
+            this.instant = instant;
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return Clock.fixed(instant, zone);
+        }
+
+        @Override
+        public Instant instant() {
+            return instant;
+        }
     }
 
     private PaperTradeLedger.Signal buy(String id) {
@@ -90,6 +118,32 @@ class PaperTradePersistenceIntegrationTest {
         assertEquals(riskBefore.dailyPnl(), guard.snapshot().dailyPnl());
         assertEquals(riskBefore.entriesUsed(), guard.snapshot().entriesUsed());
         assertEquals(riskBefore.rejection(), guard.snapshot().rejection());
+    }
+
+    @Test
+    void newTradingDayResetsRiskCountersButKeepsPersistedTradeHistory() throws Exception {
+        Path path = tempDir.resolve("new-day-journal.json");
+        MutableClock clock = new MutableClock(NOW);
+        PaperTradeLedger firstDayLedger = ledger(path, clock);
+        firstDayLedger.open(buy("previous-day-loss"));
+        firstDayLedger.close("previous-day-loss", new BigDecimal("90"), "TEST_LOSS");
+        PaperRiskGuard firstDayGuard = new PaperRiskGuard(RiskPolicy.initialDefaults(),
+                new BigDecimal("100000"), clock, ZoneId.of("Asia/Kolkata"));
+        firstDayGuard.restoreFromTrades(firstDayLedger.allTrades());
+        assertEquals(new BigDecimal("-10"), firstDayGuard.snapshot().dailyPnl());
+
+        clock.setInstant(NOW.plusSeconds(24 * 60 * 60));
+        PaperTradeLedger nextDayLedger = ledger(path, clock);
+        PaperRiskGuard nextDayGuard = new PaperRiskGuard(RiskPolicy.initialDefaults(),
+                new BigDecimal("100000"), clock, ZoneId.of("Asia/Kolkata"));
+        nextDayGuard.restoreFromTrades(nextDayLedger.allTrades());
+
+        assertEquals(1, nextDayLedger.allTrades().size());
+        assertEquals(PaperTradeLedger.Status.CLOSED,
+                nextDayLedger.findBySignalId("previous-day-loss").orElseThrow().status());
+        assertEquals(0, nextDayGuard.snapshot().entriesUsed());
+        assertEquals(BigDecimal.ZERO, nextDayGuard.snapshot().dailyPnl());
+        assertEquals(PaperRiskGuard.Rejection.NONE, nextDayGuard.snapshot().rejection());
     }
 
     @Test
