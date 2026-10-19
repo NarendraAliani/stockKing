@@ -22,19 +22,19 @@ StockKing is a local-first trading research and signal platform. The initial fou
 
 This repository now contains a **new StockKing foundation**, not the full inherited options/stocks scanner application. The supplied archive's 156 Java files have been reviewed but have **not yet been imported** into this repository. The old application's scanning, broker, persistence, and backtesting functionality is therefore not available in this baseline.
 
-The initial CI workflow is being used to verify the new foundation. See [Actions](https://github.com/NarendraAliani/stockKing/actions) for the actual result; a committed workflow is not itself proof of a passing build.
+GitHub Actions currently passes for the feature branch; check [Actions](https://github.com/NarendraAliani/stockKing/actions) for the latest run on the exact commit you plan to use.
 
 ## Build and run locally
 
 Requirements: JDK 21 and Gradle 8.x.
 
-On Windows, check out the `feat/windows-app-launcher` branch and double-click `app.bat`, or run it from PowerShell:
+On Windows, open the repository folder in VS Code, check out `feat/windows-app-launcher`, and run `app.bat` from the integrated PowerShell terminal:
 
 ```powershell
 .\\app.bat
 ```
 
-The launcher fetches and fast-forward updates that branch, refuses to overwrite a dirty working tree, verifies Java/Gradle, checks port 8080, runs `clean test`, and starts the application with paper trading enabled and live trading disabled. It only attempts to stop an existing listener when its process command line identifies the StockKing application; it does not terminate unrelated processes. Keep the launcher window open while the server runs.
+The launcher fetches and fast-forward updates that branch, refuses to overwrite a dirty working tree, verifies Java/Gradle, checks port 8080, runs `clean test`, and starts the application with paper trading enabled and live trading disabled. It is intended to run from a clean checkout; commit or stash your own changes before launching. It only attempts to stop an existing listener when its process command line identifies the StockKing application; it does not terminate unrelated processes. Keep the launcher window open while the server runs.
 
 For a manual build:
 
@@ -61,6 +61,32 @@ Useful local URLs:
 
 The trades API is read-only and supports optional combined filters: `status` (`OPEN` or `CLOSED`), `side` (`BUY` or `SELL`), and `instrument` (case-insensitive exact instrument ID match; surrounding whitespace is ignored). Filters can be combined, for example `/api/paper/trades?status=OPEN&side=BUY&instrument=RELIANCE`. Omitting all filters returns all trades. The CSV export downloads the current in-memory ledger with headers and all trade lifecycle fields; text cells are quoted and formula-like leading characters are neutralized for spreadsheet safety. It does not persist data. The performance summary reports closed-trade count, wins, losses, breakeven trades, win rate, net realized gross P&L, and maximum gross drawdown in chronological close order. Open trades are excluded. These are descriptive gross figures only; fees, taxes, slippage, and realistic fill simulation are not included. The paper ledger and risk counters are in-memory and reset on restart. The dashboard is read-only; this foundation does not send broker orders. The baseline has no database or broker connection configured and is intentionally not the inherited scanner app yet.
 
+## Get the repository into VS Code on Windows
+
+Open **Terminal → New Terminal** in VS Code and run these commands to clone the feature branch into a new local folder:
+
+```powershell
+cd D:\\
+git clone --branch feat/windows-app-launcher --single-branch https://github.com/NarendraAliani/stockKing.git StockKing
+cd .\\StockKing
+code .
+```
+
+If the repo is already on your computer, open its existing folder in VS Code and run:
+
+```powershell
+git switch feat/windows-app-launcher
+git pull --ff-only origin feat/windows-app-launcher
+```
+
+Then start the app from the repository root:
+
+```powershell
+.\\app.bat
+```
+
+Keep the terminal running while you use the local dashboard at `http://localhost:8080/paper`. The commands above download/update the repository; they do not deploy it to a remote server.
+
 ## Safe configuration
 
 - Do not commit credentials, tokens, passwords, webhook URLs, database dumps, or local settings.
@@ -85,19 +111,6 @@ See [initial audit](docs/IMPORT_AUDIT.md) and [local run checklist](docs/LOCAL_R
 8. Implement notification delivery only after delivery channels and secret handling are reviewed.
 
 
-### Paper journal persistence foundation
-
-A standalone, versioned local JSON journal store is being developed in
-`PaperTradeJournalStore`. It validates journal records, rejects duplicate signal IDs and
-unsupported schema versions, limits journal files to 10 MiB, and writes snapshots through a
-temporary file before replacing the journal. Its unit tests cover empty/missing journals,
-open/closed trade round-trips, malformed input, unsupported versions, and duplicate IDs.
-
-**Important:** this storage foundation is not yet wired into application startup or the in-memory
-ledger. The app therefore continues to reset paper trades on restart. Persistence remains
-disabled until startup restore, opt-in configuration, and failure/recovery integration tests are
-complete. No database or broker integration is involved.
-
 
 ### Opt-in restart-safe paper journal
 
@@ -106,7 +119,7 @@ The local JSON journal can now be enabled explicitly. It remains **disabled by d
 ```powershell
 $env:STOCKKING_PAPER_PERSISTENCE_ENABLED = "true"
 $env:STOCKKING_PAPER_JOURNAL_PATH = "D:\StockKing\data\paper-journal.json"
-.app.bat
+.\\app.bat
 ```
 
 The journal path is local-file storage only and is independent of any database. On startup, the app loads and validates the journal; an invalid or unsupported journal prevents startup rather than silently resetting trade history. Each successful ledger open/close is written before the in-memory ledger changes. If a write fails, the operation is rejected and the entry risk reservation is rolled back.
