@@ -30,32 +30,47 @@ WHERE c.is_final = TRUE
 GROUP BY i.instrument_id, i.exchange_code, i.symbol, c.timeframe, c.data_source
 ORDER BY i.exchange_code, i.symbol, c.timeframe, c.data_source;
 
--- 3) Candle gaps for common intraday/daily timeframes.
--- This flags only gaps that are not exact multiples of the nominal interval;
--- exchange holidays, sessions, and breaks mean results require market-calendar
--- interpretation and are not automatically data errors.
-SELECT
-    instrument_id,
-    timeframe,
-    data_source,
-    open_time AS current_open_time_utc,
-    LAG(open_time) OVER (
-        PARTITION BY instrument_id, timeframe, data_source
-        ORDER BY open_time
-    ) AS previous_open_time_utc,
-    TIMESTAMPDIFF(
-        SECOND,
+-- 3) Potential gaps between finalized candles for common timeframes.
+-- Market sessions, lunch breaks, weekends, and holidays can create legitimate
+-- gaps. Treat results as candidates for review, not automatic data errors.
+WITH ordered_candles AS (
+    SELECT
+        instrument_id,
+        timeframe,
+        data_source,
+        open_time,
         LAG(open_time) OVER (
             PARTITION BY instrument_id, timeframe, data_source
             ORDER BY open_time
-        ),
-        open_time
-    ) AS seconds_since_previous
-FROM market_candles
-WHERE is_final = TRUE
-  AND timeframe IN ('1m', '5m', '15m', '30m', '60m', '1h', '1d')
-  AND open_time IS NOT NULL
-ORDER BY instrument_id, timeframe, data_source, open_time
+        ) AS previous_open_time
+    FROM market_candles
+    WHERE is_final = TRUE
+      AND timeframe IN ('1m', '5m', '15m', '30m', '60m', '1h', '1d')
+),
+gap_candidates AS (
+    SELECT
+        instrument_id,
+        timeframe,
+        data_source,
+        previous_open_time AS previous_open_time_utc,
+        open_time AS current_open_time_utc,
+        TIMESTAMPDIFF(SECOND, previous_open_time, open_time) AS seconds_since_previous,
+        CASE timeframe
+            WHEN '1m' THEN 60
+            WHEN '5m' THEN 300
+            WHEN '15m' THEN 900
+            WHEN '30m' THEN 1800
+            WHEN '60m' THEN 3600
+            WHEN '1h' THEN 3600
+            WHEN '1d' THEN 86400
+        END AS nominal_interval_seconds
+    FROM ordered_candles
+    WHERE previous_open_time IS NOT NULL
+)
+SELECT *
+FROM gap_candidates
+WHERE seconds_since_previous > nominal_interval_seconds
+ORDER BY instrument_id, timeframe, data_source, current_open_time_utc
 LIMIT 500;
 
 -- 4) Strategy versions with parameters and code revision. A strategy should
