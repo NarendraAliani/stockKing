@@ -131,3 +131,8 @@ The journal path is local-file storage only and is independent of any database. 
 When persistence is enabled, today's entry count, realized daily gross P&L, and consecutive-loss count are reconstructed from journal timestamps. Trades and risk counters remain paper-only. Back up the journal file if you need to preserve it; this is not a substitute for a tested backup/restore process, and filesystem atomic-move/durability guarantees vary by platform.
 
 To disable persistence for a run, set `STOCKKING_PAPER_PERSISTENCE_ENABLED=false` or remove the variable. Do not point the journal path at a database file or credentials file.
+
+
+### Database data-quality checks
+
+The development MySQL schema is still separate from the Spring application. After creating `stockking_dev`, use the read-only checks in [`db/mysql/004_data_quality_checks.sql`](db/mysql/004_data_quality_checks.sql) to inspect row counts, candle coverage, OHLC validity, duplicate logical bars, instrument metadata, and backtest status. Instructions are in [`db/mysql/README.md`](db/mysql/README.md). These checks do not create market data or execute backtests; zero row counts are expected until a reviewed ingestion pipeline is added. Keep broker execution disabled and do not point development scripts at a valuable or legacy database.
