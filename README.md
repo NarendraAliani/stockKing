@@ -136,3 +136,6 @@ To disable persistence for a run, set `STOCKKING_PAPER_PERSISTENCE_ENABLED=false
 ### Database data-quality checks
 
 The development MySQL schema is still separate from the Spring application. After creating `stockking_dev`, use the read-only checks in [`db/mysql/004_data_quality_checks.sql`](db/mysql/004_data_quality_checks.sql) to inspect row counts, candle coverage, OHLC validity, duplicate logical bars, instrument metadata, and backtest status. Instructions are in [`db/mysql/README.md`](db/mysql/README.md). These checks do not create market data or execute backtests; zero row counts are expected until a reviewed ingestion pipeline is added. Keep broker execution disabled and do not point development scripts at a valuable or legacy database.
+
+
+The database research workflow also includes a read-only backtest preflight script at [`db/mysql/005_backtest_preflight.sql`](db/mysql/005_backtest_preflight.sql). It reports data availability and candidate candle gaps before a backtest is designed or run. It does not generate market data, execute a backtest, or connect the Spring application to MySQL.
