@@ -7,6 +7,7 @@ Target: MySQL 8.0+ (uses InnoDB, JSON, CHECK constraints and utf8mb4_0900_ai_ci)
 - `001_create_stockking_dev.sql`: creates only the dedicated `stockking_dev` database; no DROP statements.
 - `002_create_schema.sql`: creates the initial schema for instruments, OHLCV candles, strategy definitions/versions, backtest runs/trades, signals, and paper trades.
 - `003_backtest_validation_queries.sql`: read-only queries to validate table/index setup and inspect backtest result summaries.
+- `004_data_quality_checks.sql`: read-only row counts, candle coverage, OHLC/source validation, duplicate-bar review, instrument metadata checks, and backtest summaries.
 
 ## Local setup (PowerShell)
 
@@ -28,6 +29,16 @@ SHOW TABLES;
 SELECT * FROM schema_version;
 ```
 
+## Run read-only data checks
+
+After pulling the latest branch, run the new script in phpMyAdmin:
+
+1. Select `stockking_dev` in the left sidebar.
+2. Open the **Import** tab and select `db/mysql/004_data_quality_checks.sql` from your checkout, or open the file and paste its SQL into the **SQL** tab.
+3. Execute the statements. It begins with row counts. Candle coverage will be empty until data is loaded. The OHLC/source and instrument-metadata queries should return zero rows on a clean dataset; duplicate logical bars may be legitimate when multiple data sources are stored, so review rather than automatically delete them.
+
+The script contains only `USE` and `SELECT` statements. It does not insert, update, delete, or drop data.
+
 ## Important safety boundary
 
 This is a new, proposed development schema based on the current StockKing foundation and backtesting requirements. It is **not yet wired to the Spring application**, and it is not represented as an exact reconstruction of the legacy database schema. The source archive audit identified legacy Flyway migrations and a script refresh that truncates script-master tables; those legacy migrations must be reviewed separately before any import. Do not point this schema or the legacy app at an existing valuable database. Use only a disposable local database, and keep broker execution disabled.
@@ -43,4 +54,4 @@ This is a new, proposed development schema based on the current StockKing founda
 - `paper_trades`: simulated positions and realized costs/P&L, separate from backtest trades.
 - `schema_version`: initial schema marker; production migrations should later use Flyway.
 
-Before running real backtests, add data provenance/quality checks, corporate-action adjustments where relevant, instrument expiry/lot/tick rules, time-zone normalization, brokerage/taxes/slippage assumptions, survivorship-bias controls, and tests against known candle sequences.
+Before running real backtests, add corporate-action adjustments where relevant, instrument expiry/lot/tick rules, time-zone normalization, brokerage/taxes/slippage assumptions, survivorship-bias controls, and tests against known candle sequences. The new data-quality script provides the first read-only checks, not a complete certification of market data.
