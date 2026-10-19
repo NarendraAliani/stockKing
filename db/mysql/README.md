@@ -8,6 +8,7 @@ Target: MySQL 8.0+ (uses InnoDB, JSON, CHECK constraints and utf8mb4_0900_ai_ci)
 - `002_create_schema.sql`: creates the initial schema for instruments, OHLCV candles, strategy definitions/versions, backtest runs/trades, signals, and paper trades.
 - `003_backtest_validation_queries.sql`: read-only queries to validate table/index setup and inspect backtest result summaries.
 - `004_data_quality_checks.sql`: read-only row counts, candle coverage, OHLC/source validation, duplicate-bar review, instrument metadata checks, and backtest summaries.
+- `005_backtest_preflight.sql`: read-only readiness counts, available candle series, potential candle-gap candidates, strategy-version review, and incomplete/empty backtest-run checks.
 
 ## Local setup (PowerShell)
 
@@ -37,7 +38,11 @@ After pulling the latest branch, run the new script in phpMyAdmin:
 2. Open the **Import** tab and select `db/mysql/004_data_quality_checks.sql` from your checkout, or open the file and paste its SQL into the **SQL** tab.
 3. Execute the statements. It begins with row counts. Candle coverage will be empty until data is loaded. The OHLC/source and instrument-metadata queries should return zero rows on a clean dataset; duplicate logical bars may be legitimate when multiple data sources are stored, so review rather than automatically delete them.
 
-The script contains only `USE` and `SELECT` statements. It does not insert, update, delete, or drop data.
+The scripts contain only `USE`, `SELECT`, and read-only common table expressions/window functions. They do not insert, update, delete, or drop data.
+
+## Backtest preflight
+
+Run `db/mysql/005_backtest_preflight.sql` after the data-quality checks. It reports active instruments, finalized candles, strategies and versions; available candle series and their date coverage; potential gaps between bars; versioned strategy parameters; and runs that are not completed or have no recorded trades. Gap candidates require review against the relevant exchange calendar because weekends, holidays, and session breaks may be valid. These checks do not run a backtest or create data.
 
 ## Important safety boundary
 
