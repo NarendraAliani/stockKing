@@ -87,6 +87,10 @@ Then start the app from the repository root:
 
 Keep the terminal running while you use the local dashboard at `http://localhost:8080/paper`. The commands above download/update the repository; they do not deploy it to a remote server.
 
+## Local database schema (development only)
+
+A proposed MySQL 8 schema is available under `db/mysql/` for a disposable local database. It covers instrument masters, OHLCV candles, versioned strategies, backtest runs/trades, signals, and paper trades. It is not yet connected to the Spring application. Read `db/mysql/README.md` and inspect the scripts before running them; do not use an existing valuable database.
+
 ## Safe configuration
 
 - Do not commit credentials, tokens, passwords, webhook URLs, database dumps, or local settings.
