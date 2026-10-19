@@ -133,6 +133,32 @@ class PaperTradeJournalStoreTest {
     }
 
     @Test
+    void oversizedSerializedJournalPreservesLastKnownGoodFileAndCleansTemporaryFile() throws Exception {
+        Path path = tempDir.resolve("journal.json");
+        String knownGood = """
+                {"schemaVersion":1,"trades":[]}
+                """;
+        Files.writeString(path, knownGood);
+        ObjectMapper oversizedMapper = new ObjectMapper() {
+            @Override
+            public void writeValue(java.io.File resultFile, Object value) throws IOException {
+                byte[] oversized = new byte[10 * 1024 * 1024 + 1];
+                java.util.Arrays.fill(oversized, (byte) ' ');
+                Files.write(resultFile.toPath(), oversized);
+            }
+        };
+        PaperTradeJournalStore store = new PaperTradeJournalStore(path, oversizedMapper);
+
+        IOException error = assertThrows(IOException.class, () -> store.save(List.of(openTrade("too-large"))));
+
+        assertEquals("Paper journal exceeds the 10 MiB safety limit", error.getMessage());
+        assertEquals(knownGood, Files.readString(path));
+        try (var files = Files.list(tempDir)) {
+            assertEquals(List.of(path), files.toList());
+        }
+    }
+
+    @Test
     void unsupportedSchemaVersionFailsClosed() throws Exception {
         Path path = tempDir.resolve("journal.json");
         Files.writeString(path, """
